@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trampas Barceló</title>
+  <!-- BOOSTRAP CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css">
+  <!-- Toastify CSS -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+</head>
+
+<body>
+	<div style="background: transparent url(https://www.vicentelopez.gov.ar/assets/images/linea-header-pc.png) no-repeat bottom center;padding-bottom: 8px">
+		<!-- Navbar -->
+		<nav class="navbar navbar-expand-lg bg-white navbar-white">
+			<div class="container">
+				<a class="navbar-brand" href="/">
+					<img src="https://www.vicentelopez.gov.ar/assets/images/logo-mvl.png" alt="logo" width="250"/>
+				</a>
+				<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
+				aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+				</button>
+				<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+				<div class="navbar-nav ms-auto">
+					<a class="nav-link logged-out" href="#" data-bs-toggle="modal" data-bs-target="#signinModal">Login</a>
+					<a class="nav-link logged-in" href="#" id="logout">Logout</a>
+				</div>
+				</div>
+			</div>
+		</nav>
+	</div>
+  <div class="container pt-4 imagen-portada" style="display:'none'">
+    <div class="d-flex justify-content-center">
+      <img id="portada" src="{{ url_for('static', filename='Trampas Barceló - whitepaper.jpg') }}" />
+    </div>
+  </div>
+  <div class="container pt-4 mapa-dashboard" style="display:'none'">
+    <div class="row">
+      <!--div class="row">
+        <input type="button" id="reloadMapa" value="Actualizar información" />
+      </div-->
+      <div class="col-6">
+        <iframe id="mapa" src="/mapa" width="100%" height="100%"></iframe>
+      </div>
+      <!--script>
+          function reload() {
+              document.getElementById('mapa').src += '';
+          }
+          reloadMapa.onclick = reload;
+      </script-->
+      <div class="col-6">
+        <iframe id="detalle-casos" class="detalle-casos" src="/detalle-casos" width="600" height="600"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="signinModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalSignin"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>SignIn</h3>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="login-form">
+            <label for="email">Email</label>
+            <input type="text" id="login-email" class="form-control mb-3" placeholder="Email" value="fcernaf@gmail.com" required>
+            <label for="password">Password:</label>
+            <input type="password" id="login-password" class="form-control mb-3" placeholder="Password" value="123456" required>
+            <button type="submit" class="btn btn-success w-100 mb-4">Login</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Toastify js -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>
