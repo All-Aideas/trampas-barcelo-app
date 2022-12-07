@@ -1,3 +1,5 @@
 flask
 folium
 boto3
+git+https://github.com/ozgur/python-firebase
+pandas

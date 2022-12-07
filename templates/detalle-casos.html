@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,10 +9,14 @@
   <!-- Toastify CSS -->
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
-
 <body>
     <div class="" style="">
-        <img src="https://i.pinimg.com/originals/7f/5e/96/7f5e9657c08aae4bcd8bc8b0dcff720e.jpg" width="100%"/>
+        <img id="imagen_original" width="100%"
+            src=""    
+        />
+        <img id="imagen_yolov5" width="100%"
+            src=""
+        />
     </div>
     <div class="" style="">
         <table class="table">
@@ -25,25 +28,71 @@
                     <th scope="col">Mosquitos</th>
                     <th scope="col">Moscas</th>
                     <th scope="col">Foto</th>
+                </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Fecha</td>
-                    <td>Centro</td>
-                    <td>Aedes</td>
-                    <td>Mosquitos</td>
-                    <td>Moscas</td>
-                    <td>Foto</td>
+                {% for resumen_diario in resumenes_diario_datos %}
+                <tr onclick="verDetalle('{{ resumen_diario.fecha|int }}', 
+                                        '{{ resumen_diario.centro }}',
+                                        '{{ resumen_diario.foto_original }}',
+                                        '{{ resumen_diario.foto_yolov5 }}' )">
+                    <td>{{ resumen_diario.fecha_formato }}</td>
+                    <td>{{ resumen_diario.centro }}</td>
+                    <td>{{ resumen_diario.cantidad_aedes }}</td>
+                    <td>{{ resumen_diario.cantidad_mosquitos }}</td>
+                    <td>{{ resumen_diario.cantidad_moscas }}</td>
+                    <td></td>
                 </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="" style="">
+        <table class="table">
+            <thead>
                 <tr>
-                    
+                    <th scope="col">Fecha</th>
+                    <th scope="col">Centro</th>
+                    <th scope="col">Aedes</th>
+                    <th scope="col">Mosquitos</th>
+                    <th scope="col">Moscas</th>
+                    <th scope="col">Foto</th>
                 </tr>
+            </thead>
+            <tbody>
+                {% for resumen_diario in resumenes_diario_detalle %}
+                <tr onclick="verImagenes('{{ resumen_diario.fecha|int }}', 
+                                        '{{ resumen_diario.centro }}', 
+                                        '{{ resumen_diario.foto_original }}',
+                                        '{{ resumen_diario.foto_yolov5 }}' )">
+                    <td>{{ resumen_diario.fecha }}</td>
+                    <td>{{ resumen_diario.centro }}</td>
+                    <td>{{ resumen_diario.cantidad_aedes }}</td>
+                    <td>{{ resumen_diario.cantidad_mosquitos }}</td>
+                    <td>{{ resumen_diario.cantidad_moscas }}</td>
+                    <td></td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function verDetalle(fecha_formato, centro, url_imagen_original, url_imagen_yolov5){
+        console.log(url_imagen_original)
+        console.log(url_imagen_yolov5)
+        document.location.href = "detalle-casos?fecha_formato=" + fecha_formato + "&centro=" + centro;
+    }
+
+    function verImagenes(fecha_formato, centro, url_imagen_original, url_imagen_yolov5){
+        console.log(url_imagen_original)
+        console.log(url_imagen_yolov5)
+        document.getElementById("imagen_original").src = url_imagen_original;
+        document.getElementById("imagen_yolov5").src = url_imagen_yolov5;
+    }
+  </script>
   <!-- Toastify js -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
   <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
