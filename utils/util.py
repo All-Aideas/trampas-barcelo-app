@@ -77,13 +77,16 @@ def upload_imagen_s3(base64_str, centro, nombre_imagen):
 
     s3.upload_file(ruta_imagen_tmp, BUCKET_NAME, ruta_imagen_bucket, ExtraArgs={'ACL': 'public-read'})
     print("Respuesta de AWS S3")
-    url_imagen_yolov5 = '%s/%s/%s' % (s3.meta.endpoint_url, BUCKET_NAME, ruta_imagen_bucket)
+    url_imagen_yolov5 = get_url_imagen(ruta_imagen_bucket)
     print(url_imagen_yolov5)
-    url_imagen_foto_original = '%s/%s/%s' % (s3.meta.endpoint_url, BUCKET_NAME, ruta_imagen_bucket.replace("yolov5/", "foto_original/").replace("_yolov5.jpg", ".jpg"))
+    url_imagen_foto_original = get_url_imagen(ruta_imagen_bucket.replace("yolov5/", "foto_original/").replace("_yolov5.jpg", ".jpg"))
     print(url_imagen_foto_original)
     
     return nombre_imagen, url_imagen_foto_original, url_imagen_yolov5
 
+
+def get_url_imagen(ruta_imagen_bucket):
+    return "%s/%s/%s" % (s3.meta.endpoint_url, BUCKET_NAME, ruta_imagen_bucket)
 
 def predict_casos(centro, nombre_imagen):
     encoded_string = encode_img(centro, nombre_imagen)
@@ -131,6 +134,10 @@ def get_casos_por_centro(mapa, fecha=None):
         mosquitos_total += mosquitos
         moscas_total += moscas
 
+        icon_config = folium.Icon(color="green", icon="info-sign")
+        if aedes_total > 0 or mosquitos_total > 0 or moscas_total > 0:
+            icon_config = folium.Icon(color="red", icon="info-sign")
+
         texto_resumen = f"<div>Aedes: {aedes_total}</div><div>Mosquito: {mosquitos_total}</div><div>Mosca: {moscas_total}</div>"
         folium.Marker(
             location=centro[3],
@@ -139,7 +146,7 @@ def get_casos_por_centro(mapa, fecha=None):
                 {texto_resumen}\
                 </div>",
             tooltip=centro[1],
-            icon=folium.Icon(color="red", icon="info-sign"),
+            icon=icon_config,
         ).add_to(mapa)
 
 

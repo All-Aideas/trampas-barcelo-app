@@ -143,7 +143,7 @@ def get_datos_resumen_diario(fecha_filtro=None):
         resultado = firebase.get("/resumenes_diario",fecha_formato)
         for identificador_dia in resultado.keys():
             df_resumen_diario = df_resumen_diario.append(resultado[identificador_dia], ignore_index=True)
-        return df_resumen_diario.sort_values(by=["fecha", "centro"])
+        return df_resumen_diario.sort_values(by=["fecha", "centro"]).sort_values(by=["fecha"], ascending=False)
     
     resultado = firebase.get("/resumenes_diario",fecha_formato)
     for resultado_diario in resultado.keys():
@@ -153,7 +153,7 @@ def get_datos_resumen_diario(fecha_filtro=None):
     
     df_resumen_diario["fecha_formato"] = df_resumen_diario["fecha"]\
                                             .apply(lambda col: get_timestamp_format(col))
-    return df_resumen_diario.sort_values(by=["fecha", "centro"])
+    return df_resumen_diario.sort_values(by=["fecha", "centro"]).sort_values(by=["fecha"], ascending=False)
 
 #print(insert_dato_prediccion("MVL001", datos_prediccion_foto))
 #print(insert_dato_prediccion("MVL001", datos_prediccion_foto_2))
