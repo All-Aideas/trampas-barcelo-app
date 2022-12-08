@@ -4,30 +4,47 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trampas Barceló</title>
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/1.13.1/js/dataTables.bootstrap5.min.js"></script>
   <!-- BOOSTRAP CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
   <!-- Toastify CSS -->
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <!--
+    
+
+  -->
+  <script>
+    $(document).ready(function () {
+        $('#tabla_resumenes_diario_datos').DataTable();
+        $('#tabla_resumenes_diario_detalle').DataTable();
+    });
+  </script>
 </head>
 <body>
-    <div class="" style="">
-        <img id="imagen_original" width="100%"
-            src=""    
-        />
-        <img id="imagen_yolov5" width="100%"
-            src=""
+    <div class="" style="display: none">
+        <img id="imagen_original" class="img-fluid" src=""    
         />
     </div>
     <div class="" style="">
-        <table class="table">
+        <img id="imagen_yolov5" class="img-fluid" src=""
+        />
+    </div>
+    <div class="" style="">
+        <table id="tabla_resumenes_diario_datos" class="table table-striped" style="width:100%">
             <thead>
                 <tr>
-                    <th scope="col">Fecha</th>
-                    <th scope="col">Centro</th>
-                    <th scope="col">Aedes</th>
-                    <th scope="col">Mosquitos</th>
-                    <th scope="col">Moscas</th>
-                    <th scope="col">Foto</th>
+                    <th>Fecha</th>
+                    <th>Centro</th>
+                    <th>Aedes</th>
+                    <th>Mosquitos</th>
+                    <th>Moscas</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -38,17 +55,17 @@
                                         '{{ resumen_diario.foto_yolov5 }}' )">
                     <td>{{ resumen_diario.fecha_formato }}</td>
                     <td>{{ resumen_diario.centro }}</td>
-                    <td>{{ resumen_diario.cantidad_aedes }}</td>
-                    <td>{{ resumen_diario.cantidad_mosquitos }}</td>
-                    <td>{{ resumen_diario.cantidad_moscas }}</td>
-                    <td></td>
+                    <td>{{ resumen_diario.cantidad_aedes|int }}</td>
+                    <td>{{ resumen_diario.cantidad_mosquitos|int }}</td>
+                    <td>{{ resumen_diario.cantidad_moscas|int }}</td>
+                    <td><button type="button" class="btn btn-primary btn-sm">Ver fotos</button></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    <div class="" style="">
-        <table class="table">
+    <div class="mt-5" style="">
+        <table id="tabla_resumenes_diario_detalle" class="table table-striped" style="width:100%">
             <thead>
                 <tr>
                     <th scope="col">Fecha</th>
@@ -56,7 +73,7 @@
                     <th scope="col">Aedes</th>
                     <th scope="col">Mosquitos</th>
                     <th scope="col">Moscas</th>
-                    <th scope="col">Foto</th>
+                    <th scope="col">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -65,12 +82,12 @@
                                         '{{ resumen_diario.centro }}', 
                                         '{{ resumen_diario.foto_original }}',
                                         '{{ resumen_diario.foto_yolov5 }}' )">
-                    <td>{{ resumen_diario.fecha }}</td>
+                    <td>{{ resumen_diario.fecha_formato }}</td>
                     <td>{{ resumen_diario.centro }}</td>
-                    <td>{{ resumen_diario.cantidad_aedes }}</td>
-                    <td>{{ resumen_diario.cantidad_mosquitos }}</td>
-                    <td>{{ resumen_diario.cantidad_moscas }}</td>
-                    <td></td>
+                    <td>{{ resumen_diario.cantidad_aedes|int }}</td>
+                    <td>{{ resumen_diario.cantidad_mosquitos|int }}</td>
+                    <td>{{ resumen_diario.cantidad_moscas|int }}</td>
+                    <td><button type="button" class="btn btn-primary btn-sm">Ver imágen</button></td>
                 </tr>
                 {% endfor %}
             </tbody>

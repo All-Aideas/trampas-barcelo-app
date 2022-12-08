@@ -34,47 +34,6 @@ def get_timestamp_format(timestamp_value, format="%d/%m/%Y"):
     return date_value.strftime(format)
 
 
-"""
-datos_prediccion_foto = {
-    "foto_original":"https://demo-trampas-barcelo.s3.amazonaws.com/MVL001/MVL001_CODCAMARA001_2022-11-28.jpg",
-    "foto_yolov5":"",
-    "centro": "MVL001",
-    "cantidad_aedes":0,
-    "cantidad_mosquitos":1,
-    "cantidad_moscas":7,
-    "timestamp": get_timestamp()
-}
-
-datos_prediccion_foto_2 = {
-    "foto_original":"https://demo-trampas-barcelo.s3.amazonaws.com/MVL001/MVL001_CODCAMARA001_2022-11-29.jpg",
-    "foto_yolov5":"",
-    "centro": "MVL001",
-    "cantidad_aedes":1,
-    "cantidad_mosquitos":4,
-    "cantidad_moscas":0,
-    "timestamp": get_timestamp()
-}
-
-datos_prediccion_foto_3 = {
-    "foto_original":"https://demo-trampas-barcelo.s3.amazonaws.com/MVL002/MVL002_CODCAMARA001_2022-11-28.jpg",
-    "foto_yolov5":"",
-    "centro": "MVL002",
-    "cantidad_aedes":2,
-    "cantidad_mosquitos":3,
-    "cantidad_moscas":0,
-    "timestamp": get_timestamp()
-}
-
-datos_prediccion_foto_4 = {
-    "foto_original":"https://demo-trampas-barcelo.s3.amazonaws.com/MVL001/MVL001_CODCAMARA001_2022-11-28.jpg",
-    "foto_yolov5":"",
-    "centro": "MVL001",
-    "cantidad_aedes":6,
-    "cantidad_mosquitos":1,
-    "cantidad_moscas":12,
-    "timestamp": get_timestamp()
-}
-"""
 def campos_json(centro, aedes, mosquitos, moscas, foto_original, foto_yolov5):
     return {
         "foto_original": foto_original,
@@ -93,7 +52,7 @@ def insert_dato_prediccion(centro, datos_prediccion_foto):
     return firebase.post(f"/predicciones_foto/{centro}",datos_prediccion_foto)
 
 
-def get_datos_prediccion(dato_prediccion=""):
+def get_datos_prediccion(dato_prediccion="", centro=None):
     """ Obtener los datos almacenados en base de datos.
     """
     resultado = firebase.get("/predicciones_foto",dato_prediccion)
@@ -103,9 +62,15 @@ def get_datos_prediccion(dato_prediccion=""):
         for identificador_foto in resultado_por_foto.keys():
             df_resultados_por_centro = df_resultados_por_centro.append(resultado_por_foto[identificador_foto], ignore_index=True)
 
+    if centro is not None:
+        filtro = df_resultados_por_centro["centro"]==centro
+        df_resultados_por_centro = df_resultados_por_centro.where(filtro).dropna()
+
     df_resultados_por_centro["fecha"] = df_resultados_por_centro["timestamp"]\
                                             .apply(lambda col: get_timestamp_from_date(col))
-    return df_resultados_por_centro.sort_values(by=["fecha", "centro"])
+    df_resultados_por_centro["fecha_formato"] = df_resultados_por_centro["timestamp"]\
+                                            .apply(lambda col: get_timestamp_format(col))
+    return df_resultados_por_centro.sort_values(by=["fecha", "centro"])#.sort_values(by=["fecha_formato"], ascending=False)
 
 
 def insert_resumen_diario(fecha_insert=None):

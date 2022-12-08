@@ -46,14 +46,12 @@ def detalle_casos():
     
     json_datos_resumen_diario_detalle = []
     fecha_formato = request.args.get("fecha_formato")
-    print(f"fecha_formato: {fecha_formato}")
+    print(f"Fecha: {fecha_formato}")
     centro = request.args.get("centro")
-    print(f"centro: {centro}")
-
+    print(f"Centro: {centro}")
     
     if fecha_formato is not None and centro is not None:
-        print(f"Fecha: {fecha_formato}")
-        df_datos_prediccion = get_datos_prediccion(dato_prediccion="")
+        df_datos_prediccion = get_datos_prediccion(centro=centro)
         print(df_datos_prediccion)
 
         #filtro = df_datos_prediccion["centro"]==centro
