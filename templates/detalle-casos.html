@@ -15,99 +15,121 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
   <!-- Toastify CSS -->
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-  <!--
-    
-
-  -->
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
   <script>
     $(document).ready(function () {
-        $('#tabla_resumenes_diario_datos').DataTable();
+        $('#tabla_resumenes_diario_datos').DataTable({
+            order: [[0, 'desc']],
+        });
         $('#tabla_resumenes_diario_detalle').DataTable();
+        $('.container_imagen').css('display','none');
     });
   </script>
 </head>
 <body>
-    <div class="" style="display: none">
-        <img id="imagen_original" class="img-fluid" src=""    
-        />
+    <div class="container_dashboard_body">
+        <div class="item_dashboard_tabla container_dashboard_item">
+            <table id="tabla_resumenes_diario_datos" class="table table-striped" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Centro</th>
+                        <th>Aedes</th>
+                        <th>Mosquitos</th>
+                        <th>Moscas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for resumen_diario in resumenes_diario_datos %}
+                    <tr onclick="verDetalle('{{ resumen_diario.fecha|int }}', 
+                                            '{{ resumen_diario.centro }}',
+                                            '{{ resumen_diario.foto_original }}',
+                                            '{{ resumen_diario.foto_yolov5 }}' )">
+                        <td>{{ resumen_diario.fecha_formato }}</td>
+                        <td>{{ resumen_diario.centro_nombre }}</td>
+                        <td>{{ resumen_diario.cantidad_aedes|int }}</td>
+                        <td>{{ resumen_diario.cantidad_mosquitos|int }}</td>
+                        <td>{{ resumen_diario.cantidad_moscas|int }}</td>
+                        <td><button type="button" class="btn btn-primary btn-sm">Listar fotos</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+
+
+        <div class="item_dashboard_mapa container_dashboard_item">
+            <iframe id="mapa" class="dashboard_mapa" src="/mapa" width="100%" height="100%"></iframe>
+        </div>
+
+
+        <div class="item_dashboard_tabla container_dashboard_item">
+            <table id="tabla_resumenes_diario_detalle" class="table table-striped" style="width:100%">
+                <thead>
+                    <tr>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Centro</th>
+                        <th scope="col">Aedes</th>
+                        <th scope="col">Mosquitos</th>
+                        <th scope="col">Moscas</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for resumen_diario in resumenes_diario_detalle %}
+                    <tr onclick="verImagenes('{{ resumen_diario.fecha|int }}', 
+                                            '{{ resumen_diario.fecha_formato }}',
+                                            '{{ resumen_diario.centro }}',
+                                            '{{ resumen_diario.centro_nombre }}', 
+                                            '{{ resumen_diario.foto_original }}',
+                                            '{{ resumen_diario.foto_yolov5 }}' )">
+                        <td>{{ resumen_diario.fecha_formato }}</td>
+                        <td>{{ resumen_diario.centro_nombre }}</td>
+                        <td>{{ resumen_diario.cantidad_aedes|int }}</td>
+                        <td>{{ resumen_diario.cantidad_mosquitos|int }}</td>
+                        <td>{{ resumen_diario.cantidad_moscas|int }}</td>
+                        <td><button type="button" class="btn btn-primary btn-sm">Ver imágen</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+        <div class="item_imagen_yolo container_dashboard_item">
+            <div class="container_imagen">
+                <div class="item">
+                    <label id="imagen_yolov5_label"></label>
+                    <img id="imagen_yolov5" class="img-fluid" src="" />
+                </div>
+            </div>
+          </div>
     </div>
-    <div class="" style="">
-        <img id="imagen_yolov5" class="img-fluid" src=""
-        />
-    </div>
-    <div class="" style="">
-        <table id="tabla_resumenes_diario_datos" class="table table-striped" style="width:100%">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Centro</th>
-                    <th>Aedes</th>
-                    <th>Mosquitos</th>
-                    <th>Moscas</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for resumen_diario in resumenes_diario_datos %}
-                <tr onclick="verDetalle('{{ resumen_diario.fecha|int }}', 
-                                        '{{ resumen_diario.centro }}',
-                                        '{{ resumen_diario.foto_original }}',
-                                        '{{ resumen_diario.foto_yolov5 }}' )">
-                    <td>{{ resumen_diario.fecha_formato }}</td>
-                    <td>{{ resumen_diario.centro }}</td>
-                    <td>{{ resumen_diario.cantidad_aedes|int }}</td>
-                    <td>{{ resumen_diario.cantidad_mosquitos|int }}</td>
-                    <td>{{ resumen_diario.cantidad_moscas|int }}</td>
-                    <td><button type="button" class="btn btn-primary btn-sm">Ver fotos</button></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div class="mt-5" style="">
-        <table id="tabla_resumenes_diario_detalle" class="table table-striped" style="width:100%">
-            <thead>
-                <tr>
-                    <th scope="col">Fecha</th>
-                    <th scope="col">Centro</th>
-                    <th scope="col">Aedes</th>
-                    <th scope="col">Mosquitos</th>
-                    <th scope="col">Moscas</th>
-                    <th scope="col">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for resumen_diario in resumenes_diario_detalle %}
-                <tr onclick="verImagenes('{{ resumen_diario.fecha|int }}', 
-                                        '{{ resumen_diario.centro }}', 
-                                        '{{ resumen_diario.foto_original }}',
-                                        '{{ resumen_diario.foto_yolov5 }}' )">
-                    <td>{{ resumen_diario.fecha_formato }}</td>
-                    <td>{{ resumen_diario.centro }}</td>
-                    <td>{{ resumen_diario.cantidad_aedes|int }}</td>
-                    <td>{{ resumen_diario.cantidad_mosquitos|int }}</td>
-                    <td>{{ resumen_diario.cantidad_moscas|int }}</td>
-                    <td><button type="button" class="btn btn-primary btn-sm">Ver imágen</button></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    function reload(fecha_busqueda) {
+        var valor = "/mapa";
+        if(fecha_busqueda != null){
+          valor = "/mapa?fecha_busqueda=" + fecha_busqueda
+        }
+        document.getElementById('mapa').src = valor;
+    }
+
     function verDetalle(fecha_formato, centro, url_imagen_original, url_imagen_yolov5){
-        console.log(url_imagen_original)
-        console.log(url_imagen_yolov5)
         document.location.href = "detalle-casos?fecha_formato=" + fecha_formato + "&centro=" + centro;
     }
 
-    function verImagenes(fecha_formato, centro, url_imagen_original, url_imagen_yolov5){
-        console.log(url_imagen_original)
+    function verImagenes(fecha, fecha_formato, centro, centro_nombre, url_imagen_original, url_imagen_yolov5){
         console.log(url_imagen_yolov5)
-        document.getElementById("imagen_original").src = url_imagen_original;
         document.getElementById("imagen_yolov5").src = url_imagen_yolov5;
+        var label_imagen = "Foto tomada el <b>" + fecha_formato + "</b> en <b>" + centro_nombre + "</b>."
+        document.getElementById('imagen_yolov5_label').innerHTML = label_imagen
+        $('.container_imagen').css('display','flex');
     }
   </script>
   <!-- Toastify js -->

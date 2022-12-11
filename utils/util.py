@@ -1,26 +1,13 @@
 import os
-from os import environ
-import boto3
 import base64
 import urllib3
 import json
 import folium
 import io, base64
 from PIL import Image
-from database.connect import get_datos_resumen_diario, campos_json, insert_dato_prediccion
+from database.connect import get_lista_centros, get_datos_resumen_diario, campos_json, insert_dato_prediccion, get_datos_prediccion, get_timestamp_from_date, get_timestamp_format, insert_resumen_diario
+from utils.config import s3, BUCKET_NAME, API_URL_PREDICT
 
-
-clave_acceso = environ.get("AWS_API_KEY")
-clave_acceso_secreta = environ.get("AWS_SECRET_KEY")
-BUCKET_NAME = environ.get("AWS_S3_BUCKET")
-API_URL_PREDICT = environ.get("API_URL_PREDICT")
-
-session = boto3.Session(
-    aws_access_key_id=clave_acceso,
-    aws_secret_access_key=clave_acceso_secreta,
-)
-
-s3 = session.client('s3')
 
 def download_objects_from_s3(model_name, prefix_bucket):
     if not os.path.exists(model_name):
@@ -88,7 +75,10 @@ def upload_imagen_s3(base64_str, centro, nombre_imagen):
 def get_url_imagen(ruta_imagen_bucket):
     return "%s/%s/%s" % (s3.meta.endpoint_url, BUCKET_NAME, ruta_imagen_bucket)
 
+
 def predict_casos(centro, nombre_imagen):
+    """ Obtiene la cantidad de aedes, mosquitos y moscas detectadas por la inteligencia artificial y almacena la imagen.
+    """
     encoded_string = encode_img(centro, nombre_imagen)
     response = invoke_api(API_URL_PREDICT, encoded_string)
     print('Resultado de API: {}'.format(response.status))
@@ -106,16 +96,6 @@ def predict_casos(centro, nombre_imagen):
     return aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5
 
 
-def get_lista_centros():
-    centros_prevencion = [
-        ("MVL001", "Centro Universitario Vicente López", "Carlos Villate 4480, B1605EKT Munro, Provincia de Buenos Aires, Argentina", [-34.53156552888027, -58.519968291402265]),
-        ("MVL002", "Hospital Municipal Dr. Bernardo Houssay", "Pres. Hipólito Yrigoyen 1757, Florida, Provincia de Buenos Aires, Argentina", [-34.5217910510323, -58.48992035822424]),
-        ("MVL003", "Honorable Concejo Deliberante de Vicente López", "AAF, Av. Maipú 2502, B1636 Olivos, Provincia de Buenos Aires, Argentina", [-34.51214514705522, -58.49007573743368]),
-        ("MVL004", "Campo de Deportes Municipal", "Pelliza, Olivos, Provincia de Buenos Aires, Argentina", [-34.512933493180974, -58.50444092807812])
-    ]
-    return centros_prevencion
-
-
 def get_casos_por_centro(mapa, fecha=None):
     centros_prevencion = get_lista_centros()
     
@@ -124,21 +104,22 @@ def get_casos_por_centro(mapa, fecha=None):
     for centro in centros_prevencion:
         aedes_total, mosquitos_total, moscas_total = 0, 0, 0
         aedes, mosquitos, moscas = 0, 0, 0
-        filtro = df_resumenes_diario["centro"]==centro[0]
-        df_resumen_diario = df_resumenes_diario.where(filtro).dropna()
-        if not df_resumen_diario.empty:
-            aedes = int(df_resumen_diario.iloc[0]["cantidad_aedes"])
-            mosquitos = int(df_resumen_diario.iloc[0]["cantidad_mosquitos"])
-            moscas = int(df_resumen_diario.iloc[0]["cantidad_moscas"])
-        aedes_total += aedes
-        mosquitos_total += mosquitos
-        moscas_total += moscas
+        if not df_resumenes_diario.empty:
+            filtro = df_resumenes_diario["centro"]==centro[0]
+            df_resumen_diario = df_resumenes_diario.where(filtro).dropna()
+            if not df_resumen_diario.empty:
+                aedes = int(df_resumen_diario.iloc[0]["cantidad_aedes"])
+                mosquitos = int(df_resumen_diario.iloc[0]["cantidad_mosquitos"])
+                moscas = int(df_resumen_diario.iloc[0]["cantidad_moscas"])
+            aedes_total += aedes
+            mosquitos_total += mosquitos
+            moscas_total += moscas
 
         icon_config = folium.Icon(color="green", icon="info-sign")
         if aedes_total > 0 or mosquitos_total > 0 or moscas_total > 0:
             icon_config = folium.Icon(color="red", icon="info-sign")
 
-        texto_resumen = f"<div>Aedes: {aedes_total}</div><div>Mosquito: {mosquitos_total}</div><div>Mosca: {moscas_total}</div>"
+        texto_resumen = f"<div>Aedes: {aedes_total}</div><div>Mosquitos: {mosquitos_total}</div><div>Moscas: {moscas_total}</div>"
         folium.Marker(
             location=centro[3],
             popup=f"<div style='width: 120px'>\
@@ -171,3 +152,39 @@ def descargar_informacion():
     model_name = "tmp"
     prefix_bucket = "foto_original"
     download_objects_from_s3(model_name, prefix_bucket)
+
+
+def get_resumen_diario(fecha):
+    insert_resumen_diario(fecha)
+
+
+def marcador_casos(fecha):
+    """ Mostrar los centros y cantidad de casos detectados.
+    Los marcadores son almacenados en un HTML.
+    """
+    mapa = folium.Map(
+        location=[-34.5106, -58.4964],
+        zoom_start=13,
+    )
+    
+    get_casos_por_centro(mapa, fecha)
+    mapa.save('templates/mapa.html')
+
+
+def lista_casos(fecha_formato=None, centro=None):
+    """ Mostrar detalle de los casos.
+    """
+    if fecha_formato is not None:
+        fecha_busqueda = get_timestamp_from_date(int(fecha_formato))
+        fecha_busqueda = get_timestamp_format(fecha_busqueda, format="%Y-%m-%d")
+        marcador_casos(fecha_busqueda)
+
+    df_resumen_diario = get_datos_resumen_diario()
+    json_datos_resumen_diario = json.loads(df_resumen_diario.to_json(orient="records"))
+    
+    json_datos_resumen_diario_detalle = []
+    if fecha_formato is not None and centro is not None:
+        df_datos_prediccion = get_datos_prediccion(fecha=fecha_formato, centro=centro)
+        json_datos_resumen_diario_detalle = json.loads(df_datos_prediccion.to_json(orient="records"))
+
+    return json_datos_resumen_diario, json_datos_resumen_diario_detalle
