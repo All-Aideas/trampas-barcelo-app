@@ -32,7 +32,7 @@ def download_objects_from_s3(model_name, prefix_bucket):
 
 
 def encode_img(centro, nombre_imagen):
-    with open(f"tmp\{centro}\{nombre_imagen}", "rb") as image_file:
+    with open(os.path.join("tmp", centro, nombre_imagen), "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read())
     return encoded_string.decode('utf-8')
 
@@ -53,11 +53,11 @@ def invoke_api(url, encoded_string):
 def upload_imagen_s3(base64_str, centro, nombre_imagen):
     if not os.path.isdir(f"tmp_yolov5"):
         os.mkdir(f"tmp_yolov5")
-    if not os.path.isdir(f"tmp_yolov5\{centro}"):
-        os.mkdir(f"tmp_yolov5\{centro}")
+    if not os.path.isdir(os.path.join("tmp_yolov5", centro)):
+        os.mkdir(os.path.join("tmp_yolov5", centro))
     
-    ruta_imagen_tmp = f"tmp_yolov5\{centro}\{nombre_imagen}"
-    ruta_imagen_bucket = f"yolov5/{centro}/{nombre_imagen}"
+    ruta_imagen_tmp = os.path.join("tmp_yolov5", centro, nombre_imagen)
+    ruta_imagen_bucket = os.path.join("yolov5", centro, nombre_imagen)
     
     img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
     img.save(ruta_imagen_tmp)
@@ -136,8 +136,8 @@ def get_casos_por_centro_from_s3():
 
     for centro in centros_prevencion:
         aedes_total, mosquitos_total, moscas_total = 0, 0, 0
-        if os.path.exists(f"tmp/{centro[0]}"):
-            archivos_en_carpeta = os.listdir(f"tmp/{centro[0]}")
+        if os.path.exists(os.path.join("tmp", centro[0])):
+            archivos_en_carpeta = os.listdir(os.path.join("tmp", centro[0]))
             for nombre_archivo in archivos_en_carpeta:
                 aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5 = predict_casos(centro[0], nombre_archivo)
                 aedes_total += aedes

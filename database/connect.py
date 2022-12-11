@@ -69,7 +69,7 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
 
     df_resultados_por_centro["fecha"] = df_resultados_por_centro["timestamp"]\
                                             .apply(lambda col: get_timestamp_from_date(col))
-    df_resultados_por_centro["fecha_formato"] = df_resultados_por_centro["timestamp"]\
+    df_resultados_por_centro["fecha_formato"] = df_resultados_por_centro["fecha"]\
                                             .apply(lambda col: get_timestamp_format(col))
     df_resultados_por_centro["centro_nombre"] = df_resultados_por_centro["centro"]\
                                             .apply(lambda col: get_nombre_del_centro(col))
@@ -77,7 +77,7 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
     if fecha is not None and centro is not None:
         filtro = df_resultados_por_centro["centro"]==centro
         df_resultados_por_centro = df_resultados_por_centro.where(filtro).dropna()
-        filtro = df_resultados_por_centro["fecha"]==int(fecha)
+        filtro = df_resultados_por_centro["fecha_formato"]==get_timestamp_format(int(fecha))
         df_resultados_por_centro = df_resultados_por_centro.where(filtro).dropna()
 
     return df_resultados_por_centro.sort_values(by=["fecha", "centro"])#.sort_values(by=["fecha_formato"], ascending=False)
