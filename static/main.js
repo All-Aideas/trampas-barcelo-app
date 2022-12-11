@@ -3,15 +3,17 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-auth
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-auth.js"
 import { signOut } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-auth.js"
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-auth.js"
+import { FIREBASE_API_KEY, FIREBASE_AUTHDOMAIN, FIREBASE_PROJECTID, FIREBASE_STORAGEBUCKET, FIREBASE_MESSAGINGSENDERID, FIREBASE_API_ID, FIREBASE_MEASUREMENTID } from './config.js';
+
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCZhpMY25AZl9fMIhbGd0AtSSEWVXEZbzc",
-    authDomain: "all-aideas.firebaseapp.com",
-    projectId: "all-aideas",
-    storageBucket: "all-aideas.appspot.com",
-    messagingSenderId: "142186823430",
-    appId: "1:142186823430:web:8450f60c7a0cbe6ac66887",
-    measurementId: "G-8J3FT70EZR"
+    apiKey: FIREBASE_API_KEY,
+    authDomain: FIREBASE_AUTHDOMAIN,
+    projectId: FIREBASE_PROJECTID,
+    storageBucket: FIREBASE_STORAGEBUCKET,
+    messagingSenderId: FIREBASE_MESSAGINGSENDERID,
+    appId: FIREBASE_API_ID,
+    measurementId: FIREBASE_MEASUREMENTID
 };
 
 const loggedOutLinks = document.querySelectorAll(".logged-out");

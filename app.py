@@ -1,9 +1,16 @@
 """Web App para mostrar mapa de casos en Vicente López.
 """
 from flask import Flask, render_template, request
+import os
 import folium
 from utils.util import descargar_informacion, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, get_resumen_diario
 
+file_env = open(".env", "r")
+file_config = open(os.path.join("static", "config.js"), "w")
+for var_env in file_env:
+    print("export const " + var_env[:-1].replace("=", " = '") + "'")
+    file_config.write("export const " + var_env[:-1].replace("=", " = '") + "'\n")
+file_config.close()
 
 app = Flask(__name__)
 
