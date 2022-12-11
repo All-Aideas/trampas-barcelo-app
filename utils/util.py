@@ -93,7 +93,7 @@ def predict_casos(centro, nombre_imagen):
     aedes = int(response_data_mosquitos[0][0])
     mosquitos = int(response_data_mosquitos[1][0])
     moscas = int(response_data_mosquitos[2][0])
-    foto_fecha = nombre_imagen.split("_")[2]
+    foto_fecha = nombre_imagen.split("_")[2].replace(".jpg", "")
     return aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha
 
 
