@@ -72,8 +72,6 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
         for identificador_foto in resultado_por_foto.keys():
             df_resultados_por_centro = df_resultados_por_centro.append(resultado_por_foto[identificador_foto], ignore_index=True)
 
-    #df_resultados_por_centro["fecha"] = df_resultados_por_centro["timestamp"]\
-    #                                        .apply(lambda col: get_timestamp_from_date(col))
     df_resultados_por_centro["fecha"] = df_resultados_por_centro["foto_fecha"]\
                                             .apply(lambda col: get_timestamp_from_datetime(get_date_from_str(col)))
     df_resultados_por_centro["fecha_formato"] = df_resultados_por_centro["fecha"]\
@@ -132,16 +130,18 @@ def get_datos_resumen_diario(fecha_filtro=None):
     
     key_find = "resumenes_diario" if fecha_formato == None else f"resumenes_diario/{fecha_formato}"
     resultado = db.child(key_find).get().val()
-    for resultado_diario in resultado.keys():
-        resultado_por_dia = resultado[resultado_diario]
-        for identificador_dia in resultado_por_dia.keys():
-            df_resumen_diario = df_resumen_diario.append(resultado_por_dia[identificador_dia], ignore_index=True)
+    if resultado is not None:
+        for resultado_diario in resultado.keys():
+            resultado_por_dia = resultado[resultado_diario]
+            for identificador_dia in resultado_por_dia.keys():
+                df_resumen_diario = df_resumen_diario.append(resultado_por_dia[identificador_dia], ignore_index=True)
     
-    df_resumen_diario["fecha_formato"] = df_resumen_diario["fecha"]\
-                                            .apply(lambda col: get_timestamp_format(col))
-    df_resumen_diario["centro_nombre"] = df_resumen_diario["centro"]\
-                                            .apply(lambda col: get_nombre_del_centro(col))
-    return df_resumen_diario.sort_values(by=["fecha", "centro"]).sort_values(by=["fecha"], ascending=False)
+        df_resumen_diario["fecha_formato"] = df_resumen_diario["fecha"]\
+                                                .apply(lambda col: get_timestamp_format(col))
+        df_resumen_diario["centro_nombre"] = df_resumen_diario["centro"]\
+                                                .apply(lambda col: get_nombre_del_centro(col))
+        return df_resumen_diario.sort_values(by=["fecha", "centro"]).sort_values(by=["fecha"], ascending=False)
+    return df_resumen_diario
 
 #print(insert_dato_prediccion("MVL001", datos_prediccion_foto))
 #print(insert_dato_prediccion("MVL001", datos_prediccion_foto_2))
