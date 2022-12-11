@@ -27,6 +27,10 @@ def get_timestamp_format(timestamp_value, format="%d/%m/%Y"):
     return date_value.strftime(format)
 
 
+def get_date_from_str(fecha_str, format="%Y-%m-%d"):
+    return datetime.strptime(fecha_str, format)
+
+
 def get_lista_centros():
     return lista_centros_prevencion
 
@@ -68,8 +72,10 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
         for identificador_foto in resultado_por_foto.keys():
             df_resultados_por_centro = df_resultados_por_centro.append(resultado_por_foto[identificador_foto], ignore_index=True)
 
-    df_resultados_por_centro["fecha"] = df_resultados_por_centro["timestamp"]\
-                                            .apply(lambda col: get_timestamp_from_date(col))
+    #df_resultados_por_centro["fecha"] = df_resultados_por_centro["timestamp"]\
+    #                                        .apply(lambda col: get_timestamp_from_date(col))
+    df_resultados_por_centro["fecha"] = df_resultados_por_centro["foto_fecha"]\
+                                            .apply(lambda col: get_timestamp_from_datetime(get_date_from_str(col)))
     df_resultados_por_centro["fecha_formato"] = df_resultados_por_centro["fecha"]\
                                             .apply(lambda col: get_timestamp_format(col))
     df_resultados_por_centro["centro_nombre"] = df_resultados_por_centro["centro"]\
