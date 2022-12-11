@@ -38,7 +38,7 @@ def get_nombre_del_centro(centro_codigo):
     return ""
 
 
-def campos_json(centro, aedes, mosquitos, moscas, foto_original, foto_yolov5):
+def campos_json(centro, aedes, mosquitos, moscas, foto_original, foto_yolov5, foto_fecha):
     return {
         "foto_original": foto_original,
         "foto_yolov5": foto_yolov5,
@@ -46,6 +46,7 @@ def campos_json(centro, aedes, mosquitos, moscas, foto_original, foto_yolov5):
         "cantidad_aedes": aedes,
         "cantidad_mosquitos": mosquitos,
         "cantidad_moscas": moscas,
+        "foto_fecha": foto_fecha,
         "timestamp": get_timestamp()
     }
 

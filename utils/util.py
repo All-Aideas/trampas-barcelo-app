@@ -93,7 +93,8 @@ def predict_casos(centro, nombre_imagen):
     aedes = int(response_data_mosquitos[0][0])
     mosquitos = int(response_data_mosquitos[1][0])
     moscas = int(response_data_mosquitos[2][0])
-    return aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5
+    foto_fecha = nombre_imagen.split("_")[2]
+    return aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha
 
 
 def get_casos_por_centro(mapa, fecha=None):
@@ -139,12 +140,12 @@ def get_casos_por_centro_from_s3():
         if os.path.exists(os.path.join("tmp", centro[0])):
             archivos_en_carpeta = os.listdir(os.path.join("tmp", centro[0]))
             for nombre_archivo in archivos_en_carpeta:
-                aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5 = predict_casos(centro[0], nombre_archivo)
+                aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha = predict_casos(centro[0], nombre_archivo)
                 aedes_total += aedes
                 mosquitos_total += mosquitos
                 moscas_total += moscas
 
-                datos_json = campos_json(centro[0], aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5)
+                datos_json = campos_json(centro[0], aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha)
                 insert_dato_prediccion(centro[0], datos_json)
 
 
