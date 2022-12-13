@@ -5,7 +5,7 @@ import json
 import folium
 import io, base64
 from PIL import Image
-from utils.date_format import get_timestamp_from_date_format
+from utils.date_format import get_str_format_from_date_str
 from database.connect import get_lista_centros, get_datos_resumen_diario, campos_json, insert_dato_prediccion, get_datos_prediccion, get_timestamp_from_date, get_timestamp_format, insert_resumen_diario
 from utils.config import s3, BUCKET_NAME, API_URL_PREDICT
 
@@ -118,7 +118,7 @@ def get_casos_por_centro(mapa, fecha=None):
                 timestamp_value = None
                 if fecha is None:
                     fecha_formato = df_resumen_diario.iloc[0]["fecha_formato"]
-                    timestamp_value = get_timestamp_from_date_format(fecha_formato, format="%d/%m/%Y")
+                    fecha_formato = get_str_format_from_date_str(fecha_formato, format_old="%d/%m/%Y", format_new="%Y-%m-%d")
                 
                 url_ultima_foto = get_ultima_foto(timestamp_value=timestamp_value, centro_codigo=centro_codigo)
                 texto_resumen_imagen = f"<div><img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='{url_ultima_foto}' width='100%' /></div>"
@@ -191,9 +191,7 @@ def lista_casos(fecha_formato=None, centro=None):
     """ Mostrar detalle de los casos.
     """
     if fecha_formato is not None:
-        fecha_busqueda = get_timestamp_from_date(int(fecha_formato))
-        fecha_busqueda = get_timestamp_format(fecha_busqueda, format="%Y-%m-%d")
-        marcador_casos(fecha_busqueda)
+        marcador_casos(fecha_formato)
 
     df_resumen_diario = get_datos_resumen_diario()
     json_datos_resumen_diario = json.loads(df_resumen_diario.to_json(orient="records"))
@@ -214,5 +212,5 @@ def get_ultima_foto(timestamp_value=None, centro_codigo=None):
     Output:
     - URL de la imagen procesada por la inteligencia artificial.
     """
-    df_datos_prediccion = get_datos_prediccion(fecha=timestamp_value, centro=centro_codigo)
+    df_datos_prediccion = get_datos_prediccion(dato_prediccion=centro_codigo, fecha=timestamp_value, centro=centro_codigo)
     return df_datos_prediccion.iloc[0]["foto_yolov5"]
