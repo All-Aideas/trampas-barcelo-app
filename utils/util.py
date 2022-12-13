@@ -5,6 +5,7 @@ import json
 import folium
 import io, base64
 from PIL import Image
+from utils.date_format import get_timestamp_from_date_format
 from database.connect import get_lista_centros, get_datos_resumen_diario, campos_json, insert_dato_prediccion, get_datos_prediccion, get_timestamp_from_date, get_timestamp_format, insert_resumen_diario
 from utils.config import s3, BUCKET_NAME, API_URL_PREDICT
 
@@ -99,16 +100,29 @@ def predict_casos(centro, nombre_imagen):
 
 def get_casos_por_centro(mapa, fecha=None):
     centros_prevencion = get_lista_centros()
-    
     df_resumenes_diario = get_datos_resumen_diario(fecha)
-    
+    if not df_resumenes_diario.empty:
+        if fecha is None:
+            # Mostrar casos del primer registro
+            df_resumenes_diario = df_resumenes_diario.head(1)
+
     for centro in centros_prevencion:
+        texto_resumen_imagen = ""
         aedes_total, mosquitos_total, moscas_total = 0, 0, 0
         aedes, mosquitos, moscas = 0, 0, 0
         if not df_resumenes_diario.empty:
             filtro = df_resumenes_diario["centro"]==centro[0]
             df_resumen_diario = df_resumenes_diario.where(filtro).dropna()
             if not df_resumen_diario.empty:
+                centro_codigo = df_resumen_diario.iloc[0]["centro"]
+                timestamp_value = None
+                if fecha is None:
+                    fecha_formato = df_resumen_diario.iloc[0]["fecha_formato"]
+                    timestamp_value = get_timestamp_from_date_format(fecha_formato, format="%d/%m/%Y")
+                
+                url_ultima_foto = get_ultima_foto(timestamp_value=timestamp_value, centro_codigo=centro_codigo)
+                texto_resumen_imagen = f"<div><img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='{url_ultima_foto}' width='100%' /></div>"
+                
                 aedes = int(df_resumen_diario.iloc[0]["cantidad_aedes"])
                 mosquitos = int(df_resumen_diario.iloc[0]["cantidad_mosquitos"])
                 moscas = int(df_resumen_diario.iloc[0]["cantidad_moscas"])
@@ -120,10 +134,11 @@ def get_casos_por_centro(mapa, fecha=None):
         if aedes_total > 0:
             icon_config = folium.Icon(color="red", icon="info-sign")
 
-        texto_resumen = f"<div>Aedes: {aedes_total}</div><div>Mosquitos: {mosquitos_total}</div><div>Moscas: {moscas_total}</div>"
+        texto_resumen = f"<div>Aedes: {aedes_total}</div><div>Mosquitos: {mosquitos_total}</div><div>Moscas: {moscas_total}</div>{texto_resumen_imagen}"
+        popup_width = "120" if texto_resumen_imagen == "" else "360"
         folium.Marker(
             location=centro[3],
-            popup=f"<div style='width: 120px'>\
+            popup=f"<div style='width: {popup_width}px'>\
                 <b>{centro[1]}</b>\
                 {texto_resumen}\
                 </div>",
@@ -189,3 +204,15 @@ def lista_casos(fecha_formato=None, centro=None):
         json_datos_resumen_diario_detalle = json.loads(df_datos_prediccion.to_json(orient="records"))
 
     return json_datos_resumen_diario, json_datos_resumen_diario_detalle
+
+
+def get_ultima_foto(timestamp_value=None, centro_codigo=None):
+    """ Obtiene la última foto procesada a partir de la fecha y el código del centro.
+    Input:
+    - timestamp_value: Fecha en timestamp.
+    - centro_codigo: Código del centro.
+    Output:
+    - URL de la imagen procesada por la inteligencia artificial.
+    """
+    df_datos_prediccion = get_datos_prediccion(fecha=timestamp_value, centro=centro_codigo)
+    return df_datos_prediccion.iloc[0]["foto_yolov5"]

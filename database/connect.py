@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 import pandas as pd
 import json
+from utils.date_format import get_date_from_str, get_timestamp_from_datetime
 from utils.config import db, lista_centros_prevencion
 
 
@@ -10,11 +11,6 @@ def get_timestamp():
     current_GMT = time.gmtime()
     time_stamp = calendar.timegm(current_GMT)
     return time_stamp
-
-
-def get_timestamp_from_datetime(date_value):
-    datetime_value = datetime(year=date_value.year, month=date_value.month, day=date_value.day)
-    return int(datetime_value.timestamp())
 
 
 def get_timestamp_from_date(timestamp_value):
@@ -25,10 +21,6 @@ def get_timestamp_from_date(timestamp_value):
 def get_timestamp_format(timestamp_value, format="%d/%m/%Y"):
     date_value = datetime.fromtimestamp(timestamp_value)
     return date_value.strftime(format)
-
-
-def get_date_from_str(fecha_str, format="%Y-%m-%d"):
-    return datetime.strptime(fecha_str, format)
 
 
 def get_lista_centros():
