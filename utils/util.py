@@ -117,7 +117,7 @@ def get_casos_por_centro(mapa, fecha=None):
             moscas_total += moscas
 
         icon_config = folium.Icon(color="green", icon="info-sign")
-        if aedes_total > 0 or mosquitos_total > 0 or moscas_total > 0:
+        if aedes_total > 0:
             icon_config = folium.Icon(color="red", icon="info-sign")
 
         texto_resumen = f"<div>Aedes: {aedes_total}</div><div>Mosquitos: {mosquitos_total}</div><div>Moscas: {moscas_total}</div>"
