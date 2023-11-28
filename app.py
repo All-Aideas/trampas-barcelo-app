@@ -12,8 +12,8 @@ for var_env in file_env:
     var_env = var_env.strip()
     # Verificar si la línea no está en blanco
     if var_env:
-        print("export const " + var_env[:-1].replace("=", " = '") + "'")
-        file_config.write("export const " + var_env[:-1].replace("=", " = '") + "'\n")
+        print("export const " + var_env.replace("=", " = '") + "'")
+        file_config.write("export const " + var_env.replace("=", " = '") + "'\n")
 file_config.close()
 
 app = Flask(__name__)
