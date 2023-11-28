@@ -8,8 +8,12 @@ from utils.util import descargar_informacion, get_casos_por_centro, get_casos_po
 file_env = open(".env", "r")
 file_config = open(os.path.join("static", "config.js"), "w")
 for var_env in file_env:
-    print("export const " + var_env[:-1].replace("=", " = '") + "'")
-    file_config.write("export const " + var_env[:-1].replace("=", " = '") + "'\n")
+    # Eliminar espacios en blanco al principio y al final de la línea
+    var_env = var_env.strip()
+    # Verificar si la línea no está en blanco
+    if var_env:
+        print("export const " + var_env[:-1].replace("=", " = '") + "'")
+        file_config.write("export const " + var_env[:-1].replace("=", " = '") + "'\n")
 file_config.close()
 
 app = Flask(__name__)
