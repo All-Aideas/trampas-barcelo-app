@@ -1,9 +1,9 @@
 """Web App para mostrar mapa de casos en Vicente López.
 """
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import os
 import folium
-from utils.util import descargar_informacion, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, get_resumen_diario
+from utils.util import download_objects_from_s3, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, get_resumen_diario
 
 file_env = open(".env", "r")
 file_config = open(os.path.join("static", "config.js"), "w")
@@ -11,7 +11,7 @@ for var_env in file_env:
     # Eliminar espacios en blanco al principio y al final de la línea
     var_env = var_env.strip()
     # Verificar si la línea no está en blanco
-    if var_env:
+    if var_env and var_env.startswith("FIREBASE"):
         print("export const " + var_env.replace("=", " = '") + "'")
         file_config.write("export const " + var_env.replace("=", " = '") + "'\n")
 file_config.close()
@@ -25,9 +25,12 @@ def predecir():
     obtiene el total de aedes, mosquitos y moscas encontradas, 
     y almacena en base de datos.
     """
-    descargar_informacion()
-    get_casos_por_centro_from_s3()
-    return "OK"
+    try:
+        files_downloaded = download_objects_from_s3()
+        get_casos_por_centro_from_s3(files_downloaded)
+        return jsonify({"status": "OK"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 503
 
 
 @app.route('/resumen_diario')
