@@ -28,10 +28,8 @@ def get_lista_centros():
 
 
 def get_nombre_del_centro(centro_codigo):
-    for centro in get_lista_centros():
-        if centro[0] == centro_codigo:
-            return centro[1]
-    return ""
+    centros = get_lista_centros()
+    return centros.get(centro_codigo, "")
 
 
 def campos_json(centro, aedes, mosquitos, moscas, foto_original, foto_yolov5, foto_fecha):
@@ -113,30 +111,31 @@ def insert_resumen_diario(fecha_insert=None):
 
 
 def get_datos_resumen_diario(fecha_filtro=None):
-    """ Obtener las cantidades de aedes, mosquitos y moscas detectadas por día.
+    """Obtener las cantidades de aedes, mosquitos y moscas detectadas por día.
     """
     df_resumen_diario = pd.DataFrame()
-    if fecha_filtro is not None:
-        key_find = f"resumenes_diario/{fecha_filtro}"
-        resultado = db.child(key_find).get().val()
-        if resultado is not None:
-            for identificador_dia in resultado.keys():
-                df_resumen_diario = df_resumen_diario.append(resultado[identificador_dia], ignore_index=True)
-            return df_resumen_diario.sort_values(by=["fecha", "centro"]).sort_values(by=["fecha"], ascending=False)
-        return df_resumen_diario
-    
+
     key_find = f"resumenes_diario"
-    resultado = db.child(key_find).get().val()
+    if fecha_filtro:
+        key_find = f"{key_find}/{fecha_filtro}"
+        resultado = db.child(key_find).get().val()
+        if not resultado:
+            return df_resumen_diario
+        resumenes_diarios = [resultado[col] for col in resultado.keys()]
+    else:
+        resultado = db.child(key_find).get().val()
+        resumenes_diarios = [item for sublist in [resultado[col].values() for col in resultado.keys()] for item in sublist]
+
     if resultado is not None:
-        for resultado_diario in resultado.keys():
-            resultado_por_dia = resultado[resultado_diario]
-            for identificador_dia in resultado_por_dia.keys():
-                df_resumen_diario = df_resumen_diario.append(resultado_por_dia[identificador_dia], ignore_index=True)
-        df_resumen_diario["fecha_formato"] = df_resumen_diario["fecha"]\
-                                                .apply(lambda col: get_str_format_from_date_str(col))
-        df_resumen_diario["centro_nombre"] = df_resumen_diario["centro"]\
-                                                .apply(lambda col: get_nombre_del_centro(col))
-        return df_resumen_diario.sort_values(by=["fecha", "centro"]).sort_values(by=["fecha"], ascending=False)
+        df_resumen_diario = pd.DataFrame(resumenes_diarios)
+        df_resumen_diario = df_resumen_diario.sort_values(by=["fecha", "centro"]).sort_values(by=["fecha"], ascending=False)
+        if fecha_filtro:
+            return df_resumen_diario
+        else:
+            df_resumen_diario["fecha_formato"] = df_resumen_diario["fecha"].apply(get_str_format_from_date_str)
+            df_resumen_diario["centro_nombre"] = df_resumen_diario["centro"].apply(get_nombre_del_centro)
+            return df_resumen_diario
+
     return df_resumen_diario
 
 #print(insert_dato_prediccion("MVL001", datos_prediccion_foto))
