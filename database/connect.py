@@ -29,7 +29,7 @@ def get_lista_centros():
 
 def get_nombre_del_centro(centro_codigo):
     centros = get_lista_centros()
-    return centros.get(centro_codigo, "")
+    return centros.get(centro_codigo, ["Oficinas Modernización"])[0]
 
 
 def campos_json(centro, aedes, mosquitos, moscas, foto_original, foto_yolov5, foto_fecha):
