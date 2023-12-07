@@ -6,8 +6,3 @@ boto3
 python-dotenv==1.0.0
 pandas==1.5.2
 openpyxl
-
-# cd C:\VisualStudio\GitHub\allaideas-2\trampas-barcelo-app
-# pip install -r requirements.txt
-# .\venv\Scripts\activate
-# python app.py
