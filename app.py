@@ -27,8 +27,10 @@ def predecir():
     """
     try:
         files_downloaded = download_objects_from_s3()
-        get_casos_por_centro_from_s3(files_downloaded)
-        return jsonify({"status": "OK"}), 200
+        if files_downloaded:
+            get_casos_por_centro_from_s3(files_downloaded)
+            return jsonify({"status": "OK"}), 200
+        return jsonify({"error": "Error durante descarga de objetos del bucket."}), 503
     except Exception as e:
         return jsonify({"error": str(e)}), 503
 
