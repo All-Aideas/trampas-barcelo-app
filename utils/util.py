@@ -45,10 +45,10 @@ def download_objects_from_s3():
 
 def get_valid_files(full_path:str, carpeta_temporal:str):
     try:
-        full_path_split = full_path.split('/')
-        nombre_archivo = full_path_split[-1]
-        path = os.path.join(*full_path_split[1:-1])
-
+        ruta_normalizada = os.path.normpath(full_path)
+        partes_ruta = ruta_normalizada.split(os.path.sep)
+        nombre_archivo = partes_ruta[-1]
+        path = os.path.join(*partes_ruta[1:-1])
         carpeta_destino = os.path.join(carpeta_temporal, path)
         flag, _ = is_valid_format(nombre_archivo)
         
@@ -65,7 +65,6 @@ def get_valid_files(full_path:str, carpeta_temporal:str):
 
 
 def encode_img(nombre_imagen):
-    # with open(os.path.join("tmp", centro, nombre_imagen), "rb") as image_file:
     with open(nombre_imagen, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read())
     return encoded_string.decode('utf-8')
@@ -110,13 +109,13 @@ def upload_imagen_s3(base64_str, full_path):
         img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
         img.save(full_path_imagen_tmp)
 
-        # s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket, ExtraArgs={'ACL': 'public-read'})
+        s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket, ExtraArgs={'ACL': 'public-read'})
         print(f"La imagen se ha subido exitosamente a AWS S3 {root_path_bucket}")
         
         url_imagen_yolov5 = get_url_imagen(root_path_bucket)
-        print(url_imagen_yolov5)
+        # print(url_imagen_yolov5)
         url_imagen_foto_original = get_url_imagen(root_path_bucket.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
-        print(url_imagen_foto_original)
+        # print(url_imagen_foto_original)
         
         return url_imagen_foto_original, url_imagen_yolov5
     except Exception as e:
@@ -134,11 +133,12 @@ def predict_casos(nombre_imagen):
     try:
         encoded_string = encode_img(nombre_imagen)
         response = invoke_api(API_URL_PREDICT, encoded_string)
-        print('Resultado de API: {}'.format(response.status))
+        print('Resultado de API {} para la foto {}'.format(response.status, nombre_imagen))
         response_data = json.loads(response.data.decode('utf-8'))["data"]
         # El primer elemento contiene la imagen.
         # El segundo elemento contiene la metadata.
-        print(f'Resultado de API para la foto {nombre_imagen}: {response_data[1]["data"]}')
+        response_metadata = response_data[1]["data"]
+        print(f'Resultado de API para la foto {nombre_imagen}: {response_metadata}')
         
         response_data_imagen_yolo = response_data[0]
         response_data_imagen_yolo = response_data_imagen_yolo.split("data:image/png;base64,")[1]
@@ -147,25 +147,20 @@ def predict_casos(nombre_imagen):
         if not url_imagen_foto_original:
             return 0, 0, 0, None, None, None
         
-        response_data_mosquitos = response_data[1]["data"]
-        print(response_data_mosquitos)
-        aedes = int(response_data_mosquitos[0][0])
-        mosquitos = int(response_data_mosquitos[1][0])
-        moscas = int(response_data_mosquitos[2][0])
-        print(f"nombre_imagen: {nombre_imagen}")
+        aedes = int(response_metadata[0][0])
+        mosquitos = int(response_metadata[1][0])
+        moscas = int(response_metadata[2][0])
+        # print(f"nombre_imagen: {nombre_imagen}")
         
         ruta_normalizada = os.path.normpath(nombre_imagen)
         partes_ruta = ruta_normalizada.split(os.path.sep)
-        # root_path = ["tmp_yolov5"] + partes_ruta[1:-1]
-        # full_path_split = full_path.split('/')
         nombre_archivo = partes_ruta[-1]
-        # carpeta_destino = os.path.join(carpeta_temporal, path)
+        
         flag, timestamp = is_valid_format(nombre_archivo)
-        print(timestamp)
-        foto_fecha = timestamp.strftime('%Y-%m-%d')
-
-        # foto_fecha = timestamp#nombre_imagen.split("_")[2].replace(".jpg", "")
-        return aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha
+        if flag:
+            foto_fecha = timestamp.strftime('%Y-%m-%d')
+            return aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha
+        return 0, 0, 0, None, None, None
     except Exception as e:
         print(f"Ocurrió un error en el proceso de invocar el API de YOLO. Detalle del error: {e}")
         return 0, 0, 0, None, None, None
@@ -281,20 +276,33 @@ def get_casos_por_centro_from_s3(files_downloaded:list):
         # centros_prevencion = get_lista_centros()
         # print(centros_prevencion)
         grupos_por_codigo = {}
+        print(files_downloaded)
 
-        for ruta in files_downloaded:
-            codigo = ruta.split('\\')[1]  # Obtener el código desde la ruta
-            grupos_por_codigo.setdefault(codigo, []).append(ruta)
+        for full_path in files_downloaded:
+            print(f"ruta: {full_path}")
+            ruta_normalizada = os.path.normpath(full_path)
+            print(f"\t{ruta_normalizada}")
+            partes_ruta = ruta_normalizada.split(os.path.sep)
+            print(f"\t{partes_ruta}")
+            # root_path = ["tmp_yolov5"] + partes_ruta[1:-1]
+            # ruta_directorio = os.path.join(*partes_ruta)
+            # print(f"\t\t{ruta_directorio}")
+            
+            codigo = partes_ruta[1]  # Obtener el código desde la ruta
+            grupos_por_codigo.setdefault(codigo, []).append(full_path)
 
         # El resultado es un diccionario donde las claves son los códigos y los valores son listas de rutas
         print(grupos_por_codigo)
 
-        for codigo in grupos_por_codigo.keys():
-            archivos = grupos_por_codigo[codigo]
+        for device_location in grupos_por_codigo.keys():
+            archivos = grupos_por_codigo[device_location]
             for file_path in archivos:
-                print(file_path)
+                ruta_normalizada = os.path.normpath(file_path)
+                partes_ruta = ruta_normalizada.split(os.path.sep)
+                device_id = partes_ruta[2] # Obtener el código del dispositivo
+
                 # print(type(file_path))
-                aedes_total, mosquitos_total, moscas_total = 0, 0, 0
+                # aedes_total, mosquitos_total, moscas_total = 0, 0, 0
                 # if os.path.exists(os.path.join("tmp", centro[0])):
                 #     print()
                 # archivos_en_carpeta = os.listdir(os.path.join("tmp", centro[0]))
@@ -302,12 +310,12 @@ def get_casos_por_centro_from_s3(files_downloaded:list):
                 aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha = predict_casos(file_path)
                 
                 if foto_fecha:
-                    aedes_total += aedes
-                    mosquitos_total += mosquitos
-                    moscas_total += moscas
+                    # aedes_total += aedes
+                    # mosquitos_total += mosquitos
+                    # moscas_total += moscas
 
-                    datos_json = campos_json(codigo, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha)
-                    insert_dato_prediccion(codigo, datos_json)
+                    datos_json = campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha)
+                    insert_dato_prediccion(device_location, datos_json)
     except Exception as e:
         print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
 
