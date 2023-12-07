@@ -23,37 +23,45 @@ def download_objects_from_s3():
     Output:
         - Lista: Ubicación de cada archivo descargado.
     """
-    model_name = PATH_TEMPORAL
-    prefix_bucket = AWS_BUCKET_RAW
+    try:
+        model_name = PATH_TEMPORAL
+        prefix_bucket = AWS_BUCKET_RAW
 
-    # Crea una carpeta temporal para almacenar las descargas
-    if not os.path.exists(model_name):
-        os.mkdir(model_name)
-    carpeta_temporal = model_name
-    print(f"carpeta_temporal: {carpeta_temporal}")
-    
-    objetos = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix_bucket)
-    archivos_jpg = [objeto['Key'] for objeto in objetos.get('Contents', []) if objeto['Key'].endswith('.jpg')]
-    print(archivos_jpg)
-    files_downloaded = [file for file in [get_valid_files(archivo_valido, carpeta_temporal) for archivo_valido in archivos_jpg] if file is not None]
-    return files_downloaded
+        # Crea una carpeta temporal para almacenar las descargas
+        if not os.path.exists(model_name):
+            os.mkdir(model_name)
+        carpeta_temporal = model_name
+        print(f"carpeta_temporal: {carpeta_temporal}")
+        
+        objetos = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix_bucket)
+        archivos_jpg = [objeto['Key'] for objeto in objetos.get('Contents', []) if objeto['Key'].endswith('.jpg')]
+        print(archivos_jpg)
+        files_downloaded = [file for file in [get_valid_files(archivo_valido, carpeta_temporal) for archivo_valido in archivos_jpg] if file is not None]
+        return files_downloaded
+    except Exception as e:
+        print(f"Ocurrió un error durante la descarga de objetos del bucket. Detalle del error: {e}")
+        return None
 
 
 def get_valid_files(full_path:str, carpeta_temporal:str):
-    full_path_split = full_path.split('/')
-    nombre_archivo = full_path_split[-1]
-    path = os.path.join(*full_path_split[1:-1])
+    try:
+        full_path_split = full_path.split('/')
+        nombre_archivo = full_path_split[-1]
+        path = os.path.join(*full_path_split[1:-1])
 
-    carpeta_destino = os.path.join(carpeta_temporal, path)
-    flag, _ = is_valid_format(nombre_archivo)
-    
-    if flag:
-        destino_archivo_local = os.path.join(carpeta_destino, nombre_archivo)
-        os.makedirs(carpeta_destino, exist_ok=True)
-        s3.download_file(BUCKET_NAME, full_path, destino_archivo_local)
-        print(f"Ubicación de archivo descargado: {destino_archivo_local}")
-        return destino_archivo_local
-    return None
+        carpeta_destino = os.path.join(carpeta_temporal, path)
+        flag, _ = is_valid_format(nombre_archivo)
+        
+        if flag:
+            destino_archivo_local = os.path.join(carpeta_destino, nombre_archivo)
+            os.makedirs(carpeta_destino, exist_ok=True)
+            s3.download_file(BUCKET_NAME, full_path, destino_archivo_local)
+            print(f"Ubicación de archivo descargado: {destino_archivo_local}")
+            return destino_archivo_local
+        return None
+    except Exception as e:
+        print(f"Ocurrió un error durante la descarga del objeto {full_path} del bucket. Detalle del error: {e}")
+        return None
 
 
 def encode_img(nombre_imagen):
@@ -74,42 +82,46 @@ def invoke_api(url, encoded_string):
                             body=body,
                             headers=headers)
     return response
-import re
+
 
 def upload_imagen_s3(base64_str, full_path):
-    print(f"File name to upload to S3: {full_path}")
+    try:
+        print(f"File name to upload to S3: {full_path}")
 
-    ruta_normalizada = os.path.normpath(full_path)
-    partes_ruta = ruta_normalizada.split(os.path.sep)
-    root_path = ["tmp_yolov5"] + partes_ruta[1:-1]
-    # print(root_path)
-    full_path_imagen_tmp = root_path + [partes_ruta[-1]]
-    # print(full_path_imagen_tmp)
-    root_path_bucket = ["yolov5"] + partes_ruta[1:]
-    root_path_bucket = '/'.join(root_path_bucket)
-    # print(root_path_bucket)
-    
-    ruta_directorio = os.path.join(*root_path)
-    # print(f"ruta_directorio: {ruta_directorio}")
-    full_path_imagen_tmp = os.path.join(*full_path_imagen_tmp)
-    # print(f"ruta_directorio: {full_path_imagen_tmp}")
+        ruta_normalizada = os.path.normpath(full_path)
+        partes_ruta = ruta_normalizada.split(os.path.sep)
+        root_path = ["tmp_yolov5"] + partes_ruta[1:-1]
+        # print(root_path)
+        full_path_imagen_tmp = root_path + [partes_ruta[-1]]
+        # print(full_path_imagen_tmp)
+        root_path_bucket = ["yolov5"] + partes_ruta[1:]
+        root_path_bucket = '/'.join(root_path_bucket)
+        # print(root_path_bucket)
+        
+        ruta_directorio = os.path.join(*root_path)
+        # print(f"ruta_directorio: {ruta_directorio}")
+        full_path_imagen_tmp = os.path.join(*full_path_imagen_tmp)
+        # print(f"ruta_directorio: {full_path_imagen_tmp}")
 
-    # Crear el directorio si no existe
-    if not os.path.exists(ruta_directorio):
-        os.makedirs(ruta_directorio)
-    
-    img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
-    img.save(full_path_imagen_tmp)
+        # Crear el directorio si no existe
+        if not os.path.exists(ruta_directorio):
+            os.makedirs(ruta_directorio)
+        
+        img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
+        img.save(full_path_imagen_tmp)
 
-    # s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket, ExtraArgs={'ACL': 'public-read'})
-    print(f"La imagen se ha subido exitosamente a AWS S3 {root_path_bucket}")
-    
-    url_imagen_yolov5 = get_url_imagen(root_path_bucket)
-    print(url_imagen_yolov5)
-    url_imagen_foto_original = get_url_imagen(root_path_bucket.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
-    print(url_imagen_foto_original)
-    
-    return url_imagen_foto_original, url_imagen_yolov5
+        # s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket, ExtraArgs={'ACL': 'public-read'})
+        print(f"La imagen se ha subido exitosamente a AWS S3 {root_path_bucket}")
+        
+        url_imagen_yolov5 = get_url_imagen(root_path_bucket)
+        print(url_imagen_yolov5)
+        url_imagen_foto_original = get_url_imagen(root_path_bucket.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
+        print(url_imagen_foto_original)
+        
+        return url_imagen_foto_original, url_imagen_yolov5
+    except Exception as e:
+        print(f"Ocurrió un error en la carga de la imagen procesada por YOLO en el bucket. Detalle del error: {e}")
+        return None, None
 
 
 def get_url_imagen(ruta_imagen_bucket):
@@ -119,37 +131,44 @@ def get_url_imagen(ruta_imagen_bucket):
 def predict_casos(nombre_imagen):
     """ Obtiene la cantidad de aedes, mosquitos y moscas detectadas por la inteligencia artificial y almacena la imagen.
     """
-    encoded_string = encode_img(nombre_imagen)
-    response = invoke_api(API_URL_PREDICT, encoded_string)
-    print('Resultado de API: {}'.format(response.status))
-    response_data = json.loads(response.data.decode('utf-8'))["data"]
-    # El primer elemento contiene la imagen.
-    # El segundo elemento contiene la metadata.
-    print(f'Resultado de API para la foto {nombre_imagen}: {response_data[1]["data"]}')
-    
-    response_data_imagen_yolo = response_data[0]
-    response_data_imagen_yolo = response_data_imagen_yolo.split("data:image/png;base64,")[1]
-    url_imagen_foto_original, url_imagen_yolov5 = upload_imagen_s3(response_data_imagen_yolo, nombre_imagen.replace(".jpg","_yolov5.jpg"))
-    
-    response_data_mosquitos = response_data[1]["data"]
-    print(response_data_mosquitos)
-    aedes = int(response_data_mosquitos[0][0])
-    mosquitos = int(response_data_mosquitos[1][0])
-    moscas = int(response_data_mosquitos[2][0])
-    print(f"nombre_imagen: {nombre_imagen}")
-    
-    ruta_normalizada = os.path.normpath(nombre_imagen)
-    partes_ruta = ruta_normalizada.split(os.path.sep)
-    # root_path = ["tmp_yolov5"] + partes_ruta[1:-1]
-    # full_path_split = full_path.split('/')
-    nombre_archivo = partes_ruta[-1]
-    # carpeta_destino = os.path.join(carpeta_temporal, path)
-    flag, timestamp = is_valid_format(nombre_archivo)
-    print(timestamp)
-    foto_fecha = timestamp.strftime('%Y-%m-%d')
+    try:
+        encoded_string = encode_img(nombre_imagen)
+        response = invoke_api(API_URL_PREDICT, encoded_string)
+        print('Resultado de API: {}'.format(response.status))
+        response_data = json.loads(response.data.decode('utf-8'))["data"]
+        # El primer elemento contiene la imagen.
+        # El segundo elemento contiene la metadata.
+        print(f'Resultado de API para la foto {nombre_imagen}: {response_data[1]["data"]}')
+        
+        response_data_imagen_yolo = response_data[0]
+        response_data_imagen_yolo = response_data_imagen_yolo.split("data:image/png;base64,")[1]
+        url_imagen_foto_original, url_imagen_yolov5 = upload_imagen_s3(response_data_imagen_yolo, nombre_imagen.replace(".jpg","_yolov5.jpg"))
+        
+        if not url_imagen_foto_original:
+            return 0, 0, 0, None, None, None
+        
+        response_data_mosquitos = response_data[1]["data"]
+        print(response_data_mosquitos)
+        aedes = int(response_data_mosquitos[0][0])
+        mosquitos = int(response_data_mosquitos[1][0])
+        moscas = int(response_data_mosquitos[2][0])
+        print(f"nombre_imagen: {nombre_imagen}")
+        
+        ruta_normalizada = os.path.normpath(nombre_imagen)
+        partes_ruta = ruta_normalizada.split(os.path.sep)
+        # root_path = ["tmp_yolov5"] + partes_ruta[1:-1]
+        # full_path_split = full_path.split('/')
+        nombre_archivo = partes_ruta[-1]
+        # carpeta_destino = os.path.join(carpeta_temporal, path)
+        flag, timestamp = is_valid_format(nombre_archivo)
+        print(timestamp)
+        foto_fecha = timestamp.strftime('%Y-%m-%d')
 
-    # foto_fecha = timestamp#nombre_imagen.split("_")[2].replace(".jpg", "")
-    return aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha
+        # foto_fecha = timestamp#nombre_imagen.split("_")[2].replace(".jpg", "")
+        return aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha
+    except Exception as e:
+        print(f"Ocurrió un error en el proceso de invocar el API de YOLO. Detalle del error: {e}")
+        return 0, 0, 0, None, None, None
 
 
 def get_casos_por_centro(mapa, fecha=None):
@@ -258,34 +277,39 @@ def get_casos_por_centro_from_s3(files_downloaded:list):
     Descripción:
     Analizar cada una de las imágenes descargadas por la IA.
     """
-    # centros_prevencion = get_lista_centros()
-    # print(centros_prevencion)
-    grupos_por_codigo = {}
+    try:
+        # centros_prevencion = get_lista_centros()
+        # print(centros_prevencion)
+        grupos_por_codigo = {}
 
-    for ruta in files_downloaded:
-        codigo = ruta.split('\\')[1]  # Obtener el código desde la ruta
-        grupos_por_codigo.setdefault(codigo, []).append(ruta)
+        for ruta in files_downloaded:
+            codigo = ruta.split('\\')[1]  # Obtener el código desde la ruta
+            grupos_por_codigo.setdefault(codigo, []).append(ruta)
 
-    # El resultado es un diccionario donde las claves son los códigos y los valores son listas de rutas
-    print(grupos_por_codigo)
+        # El resultado es un diccionario donde las claves son los códigos y los valores son listas de rutas
+        print(grupos_por_codigo)
 
-    for codigo in grupos_por_codigo.keys():
-        archivos = grupos_por_codigo[codigo]
-        for file_path in archivos:
-            print(file_path)
-            print(type(file_path))
-            aedes_total, mosquitos_total, moscas_total = 0, 0, 0
-            # if os.path.exists(os.path.join("tmp", centro[0])):
-            #     print()
-            # archivos_en_carpeta = os.listdir(os.path.join("tmp", centro[0]))
-            # for nombre_archivo in archivos_en_carpeta:
-            aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha = predict_casos(file_path)
-            aedes_total += aedes
-            mosquitos_total += mosquitos
-            moscas_total += moscas
+        for codigo in grupos_por_codigo.keys():
+            archivos = grupos_por_codigo[codigo]
+            for file_path in archivos:
+                print(file_path)
+                # print(type(file_path))
+                aedes_total, mosquitos_total, moscas_total = 0, 0, 0
+                # if os.path.exists(os.path.join("tmp", centro[0])):
+                #     print()
+                # archivos_en_carpeta = os.listdir(os.path.join("tmp", centro[0]))
+                # for nombre_archivo in archivos_en_carpeta:
+                aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha = predict_casos(file_path)
+                
+                if foto_fecha:
+                    aedes_total += aedes
+                    mosquitos_total += mosquitos
+                    moscas_total += moscas
 
-            datos_json = campos_json(codigo, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha)
-            insert_dato_prediccion(codigo, datos_json)
+                    datos_json = campos_json(codigo, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha)
+                    insert_dato_prediccion(codigo, datos_json)
+    except Exception as e:
+        print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
 
 
 def get_resumen_diario(fecha):
