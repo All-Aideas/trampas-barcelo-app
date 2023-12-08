@@ -84,7 +84,8 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
         df_resultados_por_centro["centro_nombre"] = df_resultados_por_centro["centro"]\
                                                 .apply(lambda col: get_nombre_del_centro(col))
         
-        df_resultados_por_centro["path_foto_yolo"] = 'static/' + df_resultados_por_centro["path_foto_yolo"] # Visualizar foto en HTML
+        # df_resultados_por_centro["path_foto_yolo"] = 'static/' + df_resultados_por_centro["path_foto_yolo"] # Visualizar foto en HTML
+        df_resultados_por_centro["path_foto_yolo"] = df_resultados_por_centro["path_foto_yolo"] # Visualizar foto en HTML
 
         if fecha is not None and centro is not None:
             filtro = df_resultados_por_centro["centro"]==centro
@@ -117,8 +118,10 @@ def insert_resumen_diario(fecha_insert:str=None):
                                 .sort_values(by=["foto_fecha", "centro"])\
                                 .reset_index()
         
-        df_resumen_diario['ultima_foto'] = df_resumen_diario['path_foto_yolo']
-        df_resumen_diario = df_resumen_diario.drop(["path_foto_yolo"], axis=1)
+        # df_resumen_diario['ultima_foto'] = df_resumen_diario['path_foto_yolo'] # S3 o relative path
+        # df_resumen_diario = df_resumen_diario.drop(["path_foto_yolo"], axis=1)
+        df_resumen_diario['ultima_foto'] = df_resumen_diario['foto_yolov5'] # S3 o relative path
+        df_resumen_diario = df_resumen_diario.drop(["foto_yolov5"], axis=1)
         # print(df_resumen_diario)
         
         filtro = df_resumen_diario["foto_fecha"]==fecha_insert

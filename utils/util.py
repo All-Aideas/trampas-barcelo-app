@@ -119,7 +119,8 @@ def upload_imagen_s3(base64_str, full_path):
 
         ruta_normalizada = os.path.normpath(full_path)
         partes_ruta = ruta_normalizada.split(os.path.sep)
-        root_path = ["static", "yolov5"] + partes_ruta[1:-1] # Carpeta donde se encontrarán los archivos procesados.
+        # root_path = ["static", "yolov5"] + partes_ruta[1:-1] # Carpeta donde se encontrarán los archivos procesados.
+        root_path = ["yolov5"] + partes_ruta[1:-1] # Carpeta donde se encontrarán los archivos procesados.
         full_path_imagen_tmp = root_path + [partes_ruta[-1]]
         root_path_bucket = ["yolov5"] + partes_ruta[1:]
         root_path_bucket = '/'.join(root_path_bucket)
@@ -132,8 +133,8 @@ def upload_imagen_s3(base64_str, full_path):
         img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
         img.save(full_path_imagen_tmp)
 
-        # s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket, ExtraArgs={'ACL': 'public-read'})
-        s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket)
+        s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket, ExtraArgs={'ACL': 'public-read'})
+        # s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket)
         print(f"La imagen se ha subido exitosamente a AWS S3 {root_path_bucket}")
         
         return root_path_bucket
@@ -243,7 +244,8 @@ def get_casos_por_centro(mapa, fecha=None):
             centro_nombre = row['nombre_centro']
             texto_resumen_imagen = ""
 
-            url_ultima_foto = 'static/' + row['ultima_foto'] # Visualizar foto en HTML
+            # url_ultima_foto = 'static/' + row['ultima_foto'] # Visualizar foto en HTML
+            url_ultima_foto = row['ultima_foto'] # Visualizar foto en HTML
             # print(url_ultima_foto)
             texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='{url_ultima_foto}' width='100%' /></div>"
             texto_resumen_no_imagen = f"<div>No hay fotos del día {ultima_fecha_procesada}.</div>"
