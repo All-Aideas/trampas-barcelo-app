@@ -41,13 +41,13 @@ AWS_API_KEY = os.getenv("AWS_API_KEY")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
 BUCKET_NAME = os.getenv("AWS_S3_BUCKET")
 API_URL_PREDICT = os.getenv("API_URL_PREDICT")
-PATH_TEMPORAL = "tmp" # Carpeta donde se encontrarán temporalmente las fotos descargadas del bucket.
+PATH_TEMPORAL = "raw" # Carpeta donde se encontrarán temporalmente las fotos descargadas del bucket.
 AWS_BUCKET_RAW = "raw"
 
 
 session = boto3.Session(
-    # aws_access_key_id=AWS_API_KEY,
-    # aws_secret_access_key=AWS_SECRET_KEY,
+    aws_access_key_id=AWS_API_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
 )
 
 s3 = session.client('s3')

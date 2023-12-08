@@ -5,63 +5,93 @@ import json
 import folium
 import io, base64
 from PIL import Image
-from utils.date_format import get_str_format_from_date_str
+# from utils.date_format import get_str_format_from_date_str
 from database.connect import get_lista_centros, get_datos_resumen_diario, campos_json, insert_dato_prediccion, get_datos_prediccion, get_timestamp_from_date, get_timestamp_format, insert_resumen_diario
 from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, PATH_TEMPORAL, AWS_BUCKET_RAW
 import pandas as pd
 from datetime import datetime
 
 
-def download_objects_from_s3():
+def download_objects_from_s3(reprocessing:bool=False):
     """
     Descripción:
     Crear el directorio temporal donde estarán las fotos descargadas del bucket.
     Descarga solamente los archivos con extensión JPG y cuya nomenclatura sea igual al de la función is_valid_format().
+    Filtra las fotos que ya fueron procesadas por la IA anteriormente. Esto evita reprocesamiento.
     
     Input:
-        - None.
+        - reprocessing:bool Si es True, entonces se procesa todas las fotos del bucket. 
+                            Si es False, entonces se procesa las nuevas fotos del bucket.
     Output:
         - Lista: Ubicación de cada archivo descargado.
     """
     try:
-        model_name = PATH_TEMPORAL
+        carpeta_temporal = PATH_TEMPORAL
         prefix_bucket = AWS_BUCKET_RAW
 
         # Crea una carpeta temporal para almacenar las descargas
-        if not os.path.exists(model_name):
-            os.mkdir(model_name)
-        carpeta_temporal = model_name
-        print(f"carpeta_temporal: {carpeta_temporal}")
+        os.makedirs(carpeta_temporal, exist_ok=True)
         
         objetos = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix_bucket)
         archivos_jpg = [objeto['Key'] for objeto in objetos.get('Contents', []) if objeto['Key'].endswith('.jpg')]
-        print(archivos_jpg)
-        files_downloaded = [file for file in [get_valid_files(archivo_valido, carpeta_temporal) for archivo_valido in archivos_jpg] if file is not None]
-        return files_downloaded
+        # print(f"Archivos del bucket: {archivos_jpg}")
+        path_files_valid = [file for file in [get_valid_file(archivo_valido) for archivo_valido in archivos_jpg] if file]
+        print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
+        
+        if not reprocessing:
+            df_fotos_procesadas = get_datos_prediccion()
+            if df_fotos_procesadas:
+                # print(df_fotos_procesadas[['path_foto_raw']])
+                # print(df_fotos_procesadas.columns)
+                df_fotos_procesadas = df_fotos_procesadas[['path_foto_raw']]
+                path_files_will_be_processed = [elemento for elemento in path_files_valid if elemento not in df_fotos_procesadas['path_foto_raw'].unique()]
+                print(f"Archivos JPG que serán procesados {path_files_will_be_processed}")
+                path_files_valid = path_files_will_be_processed
+        
+        if path_files_valid:
+            path_files = [download_object(path_file) for path_file in path_files_valid]
+        
+            # Filtrar los resultados
+            lista_path_files = [lista for lista in path_files if lista[1]]
+            return lista_path_files
+        return []
     except Exception as e:
         print(f"Ocurrió un error durante la descarga de objetos del bucket. Detalle del error: {e}")
         return None
 
 
-def get_valid_files(full_path:str, carpeta_temporal:str):
+def get_valid_file(full_path:str):
     try:
-        ruta_normalizada = os.path.normpath(full_path)
-        partes_ruta = ruta_normalizada.split(os.path.sep)
+        partes_ruta = os.path.normpath(full_path).split(os.path.sep)
         nombre_archivo = partes_ruta[-1]
-        path = os.path.join(*partes_ruta[1:-1])
-        carpeta_destino = os.path.join(carpeta_temporal, path)
         flag, _ = is_valid_format(nombre_archivo)
         
         if flag:
-            destino_archivo_local = os.path.join(carpeta_destino, nombre_archivo)
-            os.makedirs(carpeta_destino, exist_ok=True)
-            s3.download_file(BUCKET_NAME, full_path, destino_archivo_local)
-            print(f"Ubicación de archivo descargado: {destino_archivo_local}")
-            return destino_archivo_local
+            print(f"Ubicación de archivo en el bucket: {full_path}")
+            return full_path
         return None
     except Exception as e:
         print(f"Ocurrió un error durante la descarga del objeto {full_path} del bucket. Detalle del error: {e}")
         return None
+
+
+def download_object(full_path_bucket:str):
+    try:
+        carpeta_temporal = PATH_TEMPORAL
+        
+        partes_ruta = os.path.normpath(full_path_bucket).split(os.path.sep)
+        nombre_archivo = partes_ruta[-1]
+        path_file_download = [carpeta_temporal] + partes_ruta[1:-1]
+        path_file_download = os.path.join(*path_file_download)
+        full_path_file_download = os.path.join(path_file_download, nombre_archivo)
+        
+        os.makedirs(path_file_download, exist_ok=True)
+        s3.download_file(BUCKET_NAME, full_path_bucket, full_path_file_download)
+        print(f"Descarga del archivo {full_path_bucket} en {full_path_file_download} de manera exitosa.")
+        return full_path_bucket, full_path_file_download
+    except Exception as e:
+        print(f"Ocurrió un error durante la descarga del objeto {full_path_bucket} del bucket. Detalle del error: {e}")
+        return None, None
 
 
 def encode_img(nombre_imagen):
@@ -85,26 +115,19 @@ def invoke_api(url, encoded_string):
 
 def upload_imagen_s3(base64_str, full_path):
     try:
-        print(f"File name to upload to S3: {full_path}")
+        print(f"File name {full_path} to upload to S3.")
 
         ruta_normalizada = os.path.normpath(full_path)
         partes_ruta = ruta_normalizada.split(os.path.sep)
-        root_path = ["tmp_yolov5"] + partes_ruta[1:-1]
-        # print(root_path)
+        root_path = ["static", "yolov5"] + partes_ruta[1:-1] # Carpeta donde se encontrarán los archivos procesados.
         full_path_imagen_tmp = root_path + [partes_ruta[-1]]
-        # print(full_path_imagen_tmp)
         root_path_bucket = ["yolov5"] + partes_ruta[1:]
         root_path_bucket = '/'.join(root_path_bucket)
-        # print(root_path_bucket)
-        
         ruta_directorio = os.path.join(*root_path)
-        # print(f"ruta_directorio: {ruta_directorio}")
         full_path_imagen_tmp = os.path.join(*full_path_imagen_tmp)
-        # print(f"ruta_directorio: {full_path_imagen_tmp}")
-
+        
         # Crear el directorio si no existe
-        if not os.path.exists(ruta_directorio):
-            os.makedirs(ruta_directorio)
+        os.makedirs(ruta_directorio, exist_ok=True)
         
         img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
         img.save(full_path_imagen_tmp)
@@ -113,15 +136,10 @@ def upload_imagen_s3(base64_str, full_path):
         s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket)
         print(f"La imagen se ha subido exitosamente a AWS S3 {root_path_bucket}")
         
-        url_imagen_yolov5 = get_url_imagen(root_path_bucket)
-        # print(url_imagen_yolov5)
-        url_imagen_foto_original = get_url_imagen(root_path_bucket.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
-        # print(url_imagen_foto_original)
-        
-        return url_imagen_foto_original, url_imagen_yolov5
+        return root_path_bucket
     except Exception as e:
         print(f"Ocurrió un error en la carga de la imagen procesada por YOLO en el bucket. Detalle del error: {e}")
-        return None, None
+        return None
 
 
 def get_url_imagen(ruta_imagen_bucket):
@@ -143,9 +161,9 @@ def predict_casos(nombre_imagen):
         
         response_data_imagen_yolo = response_data[0]
         response_data_imagen_yolo = response_data_imagen_yolo.split("data:image/png;base64,")[1]
-        url_imagen_foto_original, url_imagen_yolov5 = upload_imagen_s3(response_data_imagen_yolo, nombre_imagen.replace(".jpg","_yolov5.jpg"))
+        path_foto_yolo = upload_imagen_s3(response_data_imagen_yolo, nombre_imagen.replace(".jpg","_yolov5.jpg"))
         
-        if not url_imagen_foto_original:
+        if not path_foto_yolo:
             return 0, 0, 0, None, None, None
         
         aedes = int(response_metadata[0][0])
@@ -160,11 +178,11 @@ def predict_casos(nombre_imagen):
         flag, timestamp = is_valid_format(nombre_archivo)
         if flag:
             foto_fecha = timestamp.strftime('%Y-%m-%d')
-            return aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha
-        return 0, 0, 0, None, None, None
+            return aedes, mosquitos, moscas, path_foto_yolo, foto_fecha
+        return 0, 0, 0, None, None
     except Exception as e:
         print(f"Ocurrió un error en el proceso de invocar el API de YOLO. Detalle del error: {e}")
-        return 0, 0, 0, None, None, None
+        return 0, 0, 0, None, None
 
 
 def get_casos_por_centro(mapa, fecha=None):
@@ -180,6 +198,7 @@ def get_casos_por_centro(mapa, fecha=None):
         - mapa: Objeto mapa.
         - fecha: Formato YYYY-MM-DD.
     Output:
+        - None.
     """
     centros_prevencion = get_lista_centros()
     print(centros_prevencion)
@@ -195,9 +214,9 @@ def get_casos_por_centro(mapa, fecha=None):
             set_market(mapa, lat_lng=centro_lat_lng, 
                     name=centro_nombre)
     else:
-        # Obtener fecha o última fecha procesada
-        ultima_fecha_procesada = df_resumenes_diario['fecha'].iloc[0] if fecha is None else fecha
-        df_resumenes_diario = df_resumenes_diario[df_resumenes_diario['fecha'] == ultima_fecha_procesada]
+        # Obtener última fecha procesada
+        ultima_fecha_procesada = df_resumenes_diario['foto_fecha'].iloc[0] if fecha is None else fecha
+        df_resumenes_diario = df_resumenes_diario[df_resumenes_diario['foto_fecha'] == ultima_fecha_procesada]
         
         # Convertir el diccionario a DataFrame
         centro_df = pd.DataFrame.from_dict(centros_prevencion, orient='index',
@@ -210,12 +229,12 @@ def get_casos_por_centro(mapa, fecha=None):
         df_resultado = pd.merge(centro_df, df_resumenes_diario, on='centro', how='left')
         
         columnas_a_llenar_con_cero = ['cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas']
-        columnas_a_agrupar = ['centro', 'nombre_centro', 'latitud', 'longitud', 'fecha', 'ultima_foto']
+        columnas_a_agrupar = ['centro', 'nombre_centro', 'latitud', 'longitud', 'foto_fecha', 'ultima_foto']
         df_resultado = df_resultado[columnas_a_agrupar + columnas_a_llenar_con_cero]
 
-        default_values = {'fecha': ultima_fecha_procesada, 'ultima_foto': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
+        default_values = {'foto_fecha': ultima_fecha_procesada, 'ultima_foto': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
         df_resultado = df_resultado.fillna(default_values)
-        # print(df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum())
+        
         resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
         resultado_agrupado['lat_lng'] = resultado_agrupado.apply(lambda row: [row['latitud'], row['longitud']], axis=1)
 
@@ -224,15 +243,8 @@ def get_casos_por_centro(mapa, fecha=None):
             centro_nombre = row['nombre_centro']
             texto_resumen_imagen = ""
 
-            # timestamp_value = None
-            # if fecha is None:
-                # centro_codigo = row['centro']
-                # fecha_formato = row['fecha_formato']#df_resumen_diario.iloc[0]["fecha_formato"]
-                # fecha_formato = get_str_format_from_date_str(fecha_formato, format_old="%d/%m/%Y", format_new="%Y-%m-%d")
-            
-            # url_ultima_foto = get_ultima_foto(timestamp_value=timestamp_value, centro_codigo=centro_codigo)
-            url_ultima_foto = row['ultima_foto']
-            print(url_ultima_foto)
+            url_ultima_foto = 'static/' + row['ultima_foto'] # Visualizar foto en HTML
+            # print(url_ultima_foto)
             texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='{url_ultima_foto}' width='100%' /></div>"
             texto_resumen_no_imagen = f"<div>No hay fotos del día {ultima_fecha_procesada}.</div>"
             texto_resumen_imagen = texto_resumen_imagen if len(url_ultima_foto) > 0 else texto_resumen_no_imagen
@@ -268,55 +280,33 @@ def set_market(mapa, lat_lng:list, name:str, description:str="", show_descriptio
     ).add_to(mapa)
 
 
-def get_casos_por_centro_from_s3(files_downloaded:list):
+def get_casos_por_centro_from_s3(full_path_file_download:list):
     """
     Descripción:
     Analizar cada una de las imágenes descargadas por la IA.
     """
     try:
-        # centros_prevencion = get_lista_centros()
-        # print(centros_prevencion)
-        grupos_por_codigo = {}
-        print(files_downloaded)
+        print(full_path_file_download)
 
-        for full_path in files_downloaded:
+        for full_path_bucket, full_path in full_path_file_download:
             print(f"ruta: {full_path}")
-            ruta_normalizada = os.path.normpath(full_path)
-            print(f"\t{ruta_normalizada}")
-            partes_ruta = ruta_normalizada.split(os.path.sep)
+            partes_ruta = os.path.normpath(full_path).split(os.path.sep)
             print(f"\t{partes_ruta}")
-            # root_path = ["tmp_yolov5"] + partes_ruta[1:-1]
-            # ruta_directorio = os.path.join(*partes_ruta)
-            # print(f"\t\t{ruta_directorio}")
             
-            codigo = partes_ruta[1]  # Obtener el código desde la ruta
-            grupos_por_codigo.setdefault(codigo, []).append(full_path)
+            device_location = partes_ruta[1]  # Obtener el código desde la ruta
+            device_id = partes_ruta[2] # Obtener el código del dispositivo
 
-        # El resultado es un diccionario donde las claves son los códigos y los valores son listas de rutas
-        print(grupos_por_codigo)
-
-        for device_location in grupos_por_codigo.keys():
-            archivos = grupos_por_codigo[device_location]
-            for file_path in archivos:
-                ruta_normalizada = os.path.normpath(file_path)
-                partes_ruta = ruta_normalizada.split(os.path.sep)
-                device_id = partes_ruta[2] # Obtener el código del dispositivo
-
-                # print(type(file_path))
-                # aedes_total, mosquitos_total, moscas_total = 0, 0, 0
-                # if os.path.exists(os.path.join("tmp", centro[0])):
-                #     print()
-                # archivos_en_carpeta = os.listdir(os.path.join("tmp", centro[0]))
-                # for nombre_archivo in archivos_en_carpeta:
-                aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha = predict_casos(file_path)
+            aedes, mosquitos, moscas, path_foto_yolo, foto_fecha = predict_casos(full_path)
+            if foto_fecha:
+                path_foto_raw = full_path_bucket
+                # print(f"path_foto_raw: {path_foto_raw}")
+                url_imagen_yolov5 = get_url_imagen(path_foto_yolo)
+                # print(f"url_imagen_yolov5: {url_imagen_yolov5}")
+                url_imagen_foto_original = get_url_imagen(path_foto_yolo.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
+                # print(f"url_imagen_foto_original: {url_imagen_foto_original}")
                 
-                if foto_fecha:
-                    # aedes_total += aedes
-                    # mosquitos_total += mosquitos
-                    # moscas_total += moscas
-
-                    datos_json = campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, foto_fecha)
-                    insert_dato_prediccion(device_location, datos_json)
+                datos_json = campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha)
+                insert_dato_prediccion(device_location, datos_json)
     except Exception as e:
         print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
 

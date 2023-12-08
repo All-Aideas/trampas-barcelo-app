@@ -1,6 +1,7 @@
 """Web App para mostrar mapa de casos en Vicente López.
 """
 from flask import Flask, render_template, request, jsonify
+# from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import folium
 from utils.util import download_objects_from_s3, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, get_resumen_diario
@@ -19,29 +20,41 @@ file_config.close()
 app = Flask(__name__)
 
 
-@app.route('/predict')
-def predecir():
+def predict_photos():
     """ Descarga las imágenes del repositorio, 
     obtiene el total de aedes, mosquitos y moscas encontradas, 
     y almacena en base de datos.
     """
     try:
-        files_downloaded = download_objects_from_s3()
-        if files_downloaded:
-            get_casos_por_centro_from_s3(files_downloaded)
-            return jsonify({"status": "OK"}), 200
-        return jsonify({"error": "Error durante descarga de objetos del bucket."}), 503
+        with app.app_context():
+            full_path_file_download = download_objects_from_s3()
+            if full_path_file_download is not None:
+                get_casos_por_centro_from_s3(full_path_file_download)
+                return jsonify({"status": "OK"}), 200
+            return jsonify({"error": "Error durante descarga de objetos del bucket."}), 503
     except Exception as e:
         return jsonify({"error": str(e)}), 503
 
 
+@app.route('/predict')
+def predecir():
+    return predict_photos()
+
+
 @app.route('/resumen_diario')
 def obtener_resumen_diario():
-    """ Formato esperado: "2022-12-09"
+    """ Contabilizar aedes, mosquitos y moscas encontradas en todo un día.
+    Consulta la metadata de las fotos por device_id y device_location.
+    Almacena la suma de aedes, mosquitos y moscas en base de datos.
+    Input:
+        - fecha: Formato esperado YYYY-MM-DD. Ejemplo: "2022-12-09"
     """
-    fecha = request.args.get("fecha")
-    get_resumen_diario(fecha)
-    return "OK"
+    try:
+        fecha = request.args.get("fecha")
+        get_resumen_diario(fecha)
+        return jsonify({"status": "OK"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 503
 
 
 @app.route('/')
@@ -65,9 +78,8 @@ def detalle_casos():
     """ Mostrar detalle de los casos.
     """
     fecha_formato = request.args.get("fecha_formato")
-    print(f"Fecha: {fecha_formato}")
     centro = request.args.get("centro")
-    print(f"Centro: {centro}")
+    print(f"Fecha: {fecha_formato}. Centro: {centro}")
     json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato, centro)
 
     return render_template('detalle-casos.html', 
@@ -86,6 +98,11 @@ def marcador_casos(fecha=None):
     get_casos_por_centro(mapa, fecha)
     mapa.save('templates/mapa.html')
 
+# Ejecutar periodicamente
+# scheduler = BackgroundScheduler()
+# scheduler.add_job(predict_photos, trigger='interval', hours=0, minutes=5)
+# scheduler.start()
 
+# Iniciar aplicación
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
