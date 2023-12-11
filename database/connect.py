@@ -97,7 +97,7 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
         return df_resultados_por_centro.sort_values(by=["fecha_datetime", "centro", "foto_original"])
     except Exception as e:
         print(f"Ocurrió un error durante la consulta a la base de datos. Detalle del error: {e}")
-        return None
+        return pd.DataFrame()
 
 
 def insert_resumen_diario(fecha_insert:str=None):
