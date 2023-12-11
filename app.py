@@ -12,9 +12,10 @@ for var_env in file_env:
     # Eliminar espacios en blanco al principio y al final de la línea
     var_env = var_env.strip()
     # Verificar si la línea no está en blanco
-    if var_env and var_env.startswith("FIREBASE"):
-        print("export const " + var_env.replace("=", " = '") + "'")
-        file_config.write("export const " + var_env.replace("=", " = '") + "'\n")
+    if var_env:
+        if var_env.startswith("FIREBASE") or var_env.startswith("AWS_S3_BUCKET"):
+            print("export const " + var_env.replace("=", " = '") + "'")
+            file_config.write("export const " + var_env.replace("=", " = '") + "'\n")
 file_config.close()
 
 app = Flask(__name__)
