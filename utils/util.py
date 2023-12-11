@@ -71,7 +71,7 @@ def get_valid_file(full_path:str):
             return full_path
         return None
     except Exception as e:
-        print(f"Ocurrió un error durante la descarga del objeto {full_path} del bucket. Detalle del error: {e}")
+        print(f"Ocurrió un error durante la validación del objeto {full_path} del bucket. Detalle del error: {e}")
         return None
 
 
