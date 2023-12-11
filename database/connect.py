@@ -86,6 +86,7 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
         
         # df_resultados_por_centro["path_foto_yolo"] = 'static/' + df_resultados_por_centro["path_foto_yolo"] # Visualizar foto en HTML
         df_resultados_por_centro["path_foto_yolo"] = df_resultados_por_centro["path_foto_yolo"] # Visualizar foto en HTML
+        df_resultados_por_centro["foto_yolov5"] = df_resultados_por_centro["path_foto_yolo"]
 
         if fecha is not None and centro is not None:
             filtro = df_resultados_por_centro["centro"]==centro

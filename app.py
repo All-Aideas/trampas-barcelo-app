@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, jsonify
 # from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import folium
-from utils.util import download_objects_from_s3, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, get_resumen_diario
+from utils.util import download_objects_from_s3, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, get_resumen_diario, show_image
 
 file_env = open(".env", "r")
 file_config = open(os.path.join("static", "config.js"), "w")
@@ -86,6 +86,11 @@ def detalle_casos():
             resumenes_diario_datos=json_datos_resumen_diario,
             resumenes_diario_detalle=json_datos_resumen_diario_detalle)
 
+
+@app.route('/imagen')
+def mostrar_image():
+    object_key = request.args.get("key")
+    return show_image(object_key)
 
 def marcador_casos(fecha=None):
     """ Mostrar los centros y cantidad de casos detectados.

@@ -132,8 +132,24 @@
     }
 
     function verImagenes(fecha, fecha_formato, centro, centro_nombre, url_imagen_original, url_imagen_yolov5){
+        imagen_base64 = "/imagen?key=" + url_imagen_yolov5
         console.log(url_imagen_yolov5)
-        document.getElementById("imagen_yolov5").src = url_imagen_yolov5;
+        // data:image/jpeg;base64,
+        // document.getElementById("imagen_yolov5").src = url_imagen_yolov5;
+        // document.getElementById("imagen_yolov5").src = imagen_base64;
+
+        // Realizar la solicitud HTTP
+        fetch("/imagen?key=" + encodeURIComponent(url_imagen_yolov5))
+            .then(response => response.text())
+            .then(base64String => {
+                // Asignar el resultado al atributo src de la imagen
+                var imagenElement = document.getElementById("imagen_yolov5");
+                imagenElement.src = "data:image/jpeg;base64," + base64String;
+            })
+            .catch(error => {
+                console.error('Error al cargar la imagen:', error);
+            });
+
         var label_imagen = "Foto tomada el <b>" + fecha_formato + "</b> en <b>" + centro_nombre + "</b>."
         document.getElementById('imagen_yolov5_label').innerHTML = label_imagen
         $('.container_imagen').css('display','flex');

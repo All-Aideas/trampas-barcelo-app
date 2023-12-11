@@ -94,6 +94,15 @@ def download_object(full_path_bucket:str):
         return None, None
 
 
+def show_image(object_key):
+    try:
+        image_data = s3.get_object(Bucket=BUCKET_NAME, Key=object_key)['Body'].read()
+        image_base64 = base64.b64encode(image_data).decode('utf-8')
+        return image_base64
+    except Exception as e:
+        print(f"Error al recuperar imagen base64 de {object_key}: {e}")
+        return ""
+
 def encode_img(nombre_imagen):
     with open(nombre_imagen, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read())
