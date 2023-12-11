@@ -133,8 +133,8 @@ def upload_imagen_s3(base64_str, full_path):
         img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
         img.save(full_path_imagen_tmp)
 
-        s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket, ExtraArgs={'ACL': 'public-read'})
-        # s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket)
+        # s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket, ExtraArgs={'ACL': 'public-read'})
+        s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket)
         print(f"La imagen se ha subido exitosamente a AWS S3 {root_path_bucket}")
         
         return root_path_bucket
