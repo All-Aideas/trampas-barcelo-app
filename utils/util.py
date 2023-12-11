@@ -215,7 +215,7 @@ def get_casos_por_centro(mapa, fecha=None):
 
     df_resumenes_diario = get_datos_resumen_diario(fecha)
     print(df_resumenes_diario)
-    if df_resumenes_diario.empty:
+    if not df_resumenes_diario.empty:
         for centro in centros_prevencion.keys():
             centro_lat = centros_prevencion[centro][1]
             centro_lng = centros_prevencion[centro][2]
