@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trampas Barceló</title>
 
@@ -19,7 +20,7 @@
   <script>
     $(document).ready(function () {
         $('#tabla_resumenes_diario_datos').DataTable({
-            order: [[0, 'desc']],
+            order: [[0, 'asc']],
         });
         $('#tabla_resumenes_diario_detalle').DataTable();
         $('.container_imagen').css('display','none');
@@ -103,8 +104,12 @@
         <div class="item_imagen_yolo container_dashboard_item">
             <div class="container_imagen">
                 <div class="item">
-                    <label id="imagen_yolov5_label"></label>
-                    <img id="imagen_yolov5" class="img-fluid" src="" />
+                    <div>
+                        <label id="imagen_yolov5_label"></label>
+                    </div>
+                    <div>
+                        <img id="imagen_yolov5" class="img-fluid" src="" />
+                    </div>
                 </div>
             </div>
           </div>

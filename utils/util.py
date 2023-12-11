@@ -40,7 +40,7 @@ def download_objects_from_s3(reprocessing:bool=False):
         
         if not reprocessing:
             df_fotos_procesadas = get_datos_prediccion()
-            if df_fotos_procesadas:
+            if not df_fotos_procesadas.empty:
                 # print(df_fotos_procesadas[['path_foto_raw']])
                 # print(df_fotos_procesadas.columns)
                 df_fotos_procesadas = df_fotos_procesadas[['path_foto_raw']]

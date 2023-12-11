@@ -55,7 +55,7 @@
 
 .container_dashboard_item {
     flex: 1 0 45%; /* explanation below */
-    margin: 1em;
+    margin: 0.1em;
 }
 
 .dashboard_mapa {
