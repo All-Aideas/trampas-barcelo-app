@@ -90,7 +90,7 @@ def download_object(full_path_bucket:str):
         print(f"Descarga del archivo {full_path_bucket} en {full_path_file_download} de manera exitosa.")
         return full_path_bucket, full_path_file_download
     except Exception as e:
-        print(f"Ocurrió un error durante la descarga del objeto {full_path_bucket} del bucket. Detalle del error: {e}")
+        print(f"Ocurrió un error durante la descarga del objeto {full_path_bucket} del bucket en {full_path_file_download}. Detalle del error: {e}")
         return None, None
 
 
