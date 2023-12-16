@@ -33,6 +33,7 @@
             <table id="tabla_resumenes_diario_datos" class="table table-striped" style="width:100%">
                 <thead>
                     <tr>
+                        <th class="ocultar">Timestamp</th>
                         <th>Fecha</th>
                         <th>Centro</th>
                         <th>Aedes</th>
@@ -47,6 +48,7 @@
                                             '{{ resumen_diario.centro }}',
                                             '{{ resumen_diario.foto_original }}',
                                             '{{ resumen_diario.foto_yolov5 }}' )">
+                        <td class="ocultar">{{ timestamp_procesamiento }}</td>
                         <td>{{ resumen_diario.fecha_formato }}</td>
                         <td>{{ resumen_diario.centro_nombre }}</td>
                         <td>{{ resumen_diario.cantidad_aedes|int }}</td>
@@ -132,12 +134,7 @@
     }
 
     function verImagenes(fecha, fecha_formato, centro, centro_nombre, url_imagen_original, url_imagen_yolov5){
-        imagen_base64 = "/imagen?key=" + url_imagen_yolov5
-        console.log(url_imagen_yolov5)
-        // data:image/jpeg;base64,
-        // document.getElementById("imagen_yolov5").src = url_imagen_yolov5;
-        // document.getElementById("imagen_yolov5").src = imagen_base64;
-
+        // url_imagen_yolov5 : Imagen en base64
         // Realizar la solicitud HTTP
         fetch("/imagen?key=" + encodeURIComponent(url_imagen_yolov5))
             .then(response => response.text())

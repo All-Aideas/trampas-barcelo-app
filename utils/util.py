@@ -7,7 +7,7 @@ import io, base64
 from PIL import Image
 # from utils.date_format import get_str_format_from_date_str
 from database.connect import get_lista_centros, get_datos_resumen_diario, campos_json, insert_dato_prediccion, get_datos_prediccion, get_timestamp_from_date, get_timestamp_format, insert_resumen_diario
-from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, PATH_TEMPORAL, AWS_BUCKET_RAW
+from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, PATH_TEMPORAL, AWS_BUCKET_RAW, lista_centros_prevencion
 import pandas as pd
 from datetime import datetime
 
@@ -63,6 +63,12 @@ def download_objects_from_s3(reprocessing:bool=False):
 def get_valid_file(full_path:str):
     try:
         partes_ruta = os.path.normpath(full_path).split(os.path.sep)
+        device_location = partes_ruta[1]
+        flag, _ = is_valid_location(device_location)
+        if not flag:
+            print(f"El objeto en el bucket no pertenece a un device_location válido: {full_path}")
+            return None
+
         nombre_archivo = partes_ruta[-1]
         flag, _ = is_valid_format(nombre_archivo)
         
@@ -133,17 +139,11 @@ def upload_imagen_s3(base64_str, full_path):
         full_path_imagen_tmp = root_path + [partes_ruta[-1]]
         root_path_bucket = ["yolov5"] + partes_ruta[1:]
         root_path_bucket = '/'.join(root_path_bucket)
-        ruta_directorio = os.path.join(*root_path)
         full_path_imagen_tmp = os.path.join(*full_path_imagen_tmp)
         
-        # Crear el directorio si no existe
-        os.makedirs(ruta_directorio, exist_ok=True)
-        
-        img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
-        img.save(full_path_imagen_tmp)
+        image_data = base64.decodebytes(bytes(base64_str, "utf-8"))
 
-        # s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket, ExtraArgs={'ACL': 'public-read'})
-        s3.upload_file(full_path_imagen_tmp, BUCKET_NAME, root_path_bucket)
+        s3.put_object(Body=image_data, Bucket=BUCKET_NAME, Key=root_path_bucket)
         print(f"La imagen se ha subido exitosamente a AWS S3 {root_path_bucket}")
         
         return root_path_bucket
@@ -378,4 +378,19 @@ def is_valid_format(nombre_archivo):
         return True, timestamp
     except ValueError:
         print("El formato del nombre del archivo no es válido.")
+        return False, None
+    except Exception as e:
+        print(f"Error durante la validación del formato del archivo. {e}")
+        return False, None
+
+
+def is_valid_location(device_location:str):
+    """Validar que el device_location se encuentre en la base de datos."""
+    try:
+        if lista_centros_prevencion.get(device_location):
+            print(f"El device_location es válido: {device_location}")
+            return True, device_location
+        return False, None
+    except Exception as e:
+        print(f"Error durante la validación del código de device_location. {e}")
         return False, None

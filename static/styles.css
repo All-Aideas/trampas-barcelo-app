@@ -84,3 +84,7 @@
     display: flex;
     flex-direction: column;
 }
+
+.ocultar {
+    display: none;
+}

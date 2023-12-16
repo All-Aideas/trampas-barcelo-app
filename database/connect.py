@@ -74,7 +74,7 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
                 for identificador_foto in resultado_por_foto.keys():
                     new_row = pd.DataFrame([resultado_por_foto[identificador_foto]])
                     df_resultados_por_centro = pd.concat([df_resultados_por_centro, new_row], ignore_index=True)
-        # print(df_resultados_por_centro.columns)
+
         df_resultados_por_centro["fecha"] = df_resultados_por_centro["foto_fecha"]\
                                                 .apply(lambda col: col)
         df_resultados_por_centro["fecha_datetime"] = df_resultados_por_centro["foto_fecha"]\
@@ -109,13 +109,13 @@ def insert_resumen_diario(fecha_insert:str=None):
     if fecha_insert:
         df_datos_prediccion = get_datos_prediccion(dato_prediccion="")
         
-        df_datos_prediccion = df_datos_prediccion.drop(["timestamp_procesamiento"], axis=1)
         df_resumen_diario = df_datos_prediccion.groupby(["foto_fecha", "centro"])\
                                 .agg({'cantidad_aedes': 'sum', 
                                       'cantidad_moscas': 'sum', 
                                       'cantidad_mosquitos': 'sum', 
                                       'foto_yolov5': 'last',
-                                      'path_foto_yolo': 'last'})\
+                                      'path_foto_yolo': 'last',
+                                      'timestamp_procesamiento': 'last'})\
                                 .sort_values(by=["foto_fecha", "centro"])\
                                 .reset_index()
         
@@ -123,7 +123,6 @@ def insert_resumen_diario(fecha_insert:str=None):
         # df_resumen_diario = df_resumen_diario.drop(["path_foto_yolo"], axis=1)
         df_resumen_diario['ultima_foto'] = df_resumen_diario['foto_yolov5'] # S3 o relative path
         df_resumen_diario = df_resumen_diario.drop(["foto_yolov5"], axis=1)
-        # print(df_resumen_diario)
         
         filtro = df_resumen_diario["foto_fecha"]==fecha_insert
         df_resumen_diario = df_resumen_diario.where(filtro).dropna()
