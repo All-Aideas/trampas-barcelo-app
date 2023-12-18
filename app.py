@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, jsonify
 # from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import folium
-from utils.util import download_objects_from_s3, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, get_resumen_diario, show_image
+from utils.util import predict_objects_from_s3, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario, get_image_base64
 
 file_env = open(".env", "r")
 file_config = open(os.path.join("static", "config.js"), "w")
@@ -28,9 +28,14 @@ def predict_photos():
     """
     try:
         with app.app_context():
-            full_path_file_download = download_objects_from_s3()
+            full_path_file_download = predict_objects_from_s3()
+            
             if full_path_file_download is not None:
-                get_casos_por_centro_from_s3(full_path_file_download)
+                fechas_fotos = get_casos_por_centro_from_s3(full_path_file_download)
+
+                for fecha_foto in fechas_fotos:
+                    contabilizar_resumen_diario(fecha_foto)
+                
                 return jsonify({"status": "OK"}), 200
             return jsonify({"error": "Error durante descarga de objetos del bucket."}), 503
     except Exception as e:
@@ -44,15 +49,18 @@ def predecir():
 
 @app.route('/resumen_diario')
 def obtener_resumen_diario():
-    """ Contabilizar aedes, mosquitos y moscas encontradas en todo un día.
-    Consulta la metadata de las fotos por device_id y device_location.
-    Almacena la suma de aedes, mosquitos y moscas en base de datos.
+    """
+    Descripción:
+        Proceso manual para contabilizar.
+        Contabilizar aedes, mosquitos y moscas encontradas en todo un día.
+        Consulta la metadata de las fotos por device_id y device_location.
+        Almacena la suma de aedes, mosquitos y moscas en base de datos.
     Input:
         - fecha: Formato esperado YYYY-MM-DD. Ejemplo: "2022-12-09"
     """
     try:
         fecha = request.args.get("fecha")
-        get_resumen_diario(fecha)
+        contabilizar_resumen_diario(fecha)
         return jsonify({"status": "OK"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 503
@@ -91,7 +99,8 @@ def detalle_casos():
 @app.route('/imagen')
 def mostrar_image():
     object_key = request.args.get("key")
-    return show_image(object_key)
+    return get_image_base64(object_key)
+
 
 def marcador_casos(fecha=None):
     """ Mostrar los centros y cantidad de casos detectados.

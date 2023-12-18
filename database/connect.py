@@ -101,9 +101,13 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
 
 
 def insert_resumen_diario(fecha_insert:str=None):
-    """ Insertar registros en tabla resumen diario.
-    Parámetro:
-    - fecha_insert: Formato: AAAA-MM-DD. Tipo: String.
+    """ 
+    Descripción:
+        Contabilizar aedes, mosquitos y moscas encontradas en todo un día.
+        Consulta la metadata de las fotos por device_id y device_location.
+        Almacena la suma de aedes, mosquitos y moscas en base de datos.
+    Input:
+        - fecha_insert:str Formato esperado YYYY-MM-DD. Ejemplo: "2022-12-09"
     """
     dict_resumen_diario = {}
     if fecha_insert:
