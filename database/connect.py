@@ -32,7 +32,7 @@ def get_nombre_del_centro(centro_codigo):
     return centros.get(centro_codigo, [""])[0]
 
 
-def campos_json(device_location, device_id, aedes, mosquitos, moscas, foto_original, foto_yolov5, path_foto_raw, path_foto_yolo, foto_fecha):
+def campos_json(device_location, device_id, aedes, mosquitos, moscas, foto_original, foto_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime):
     timestamp = get_timestamp()
     return {
         "foto_original": foto_original,
@@ -45,6 +45,7 @@ def campos_json(device_location, device_id, aedes, mosquitos, moscas, foto_origi
         "cantidad_mosquitos": mosquitos,
         "cantidad_moscas": moscas,
         "foto_fecha": foto_fecha,
+        "foto_datetime": foto_datetime,
         "timestamp_procesamiento": timestamp, # Fecha de procesamiento
         "fecha_procesamiento": get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")
     }
@@ -84,7 +85,6 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
         df_resultados_por_centro["centro_nombre"] = df_resultados_por_centro["centro"]\
                                                 .apply(lambda col: get_nombre_del_centro(col))
         
-        # df_resultados_por_centro["path_foto_yolo"] = 'static/' + df_resultados_por_centro["path_foto_yolo"] # Visualizar foto en HTML
         df_resultados_por_centro["path_foto_yolo"] = df_resultados_por_centro["path_foto_yolo"] # Visualizar foto en HTML
         df_resultados_por_centro["foto_yolov5"] = df_resultados_por_centro["path_foto_yolo"]
 
@@ -94,13 +94,13 @@ def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
             filtro = df_resultados_por_centro["foto_fecha"]==fecha
             df_resultados_por_centro = df_resultados_por_centro.where(filtro).dropna()
 
-        return df_resultados_por_centro.sort_values(by=["fecha_datetime", "centro", "foto_original"])
+        return df_resultados_por_centro.sort_values(by=["fecha_datetime", "centro", "path_foto_yolo"])
     except Exception as e:
         print(f"Ocurrió un error durante la consulta a la base de datos. Detalle del error: {e}")
         return pd.DataFrame()
 
 
-def insert_resumen_diario(fecha_insert:str=None):
+def insert_resumen_diario(fecha_insert:str=None, device_location:str=None):
     """ 
     Descripción:
         Contabilizar aedes, mosquitos y moscas encontradas en todo un día.
@@ -108,10 +108,11 @@ def insert_resumen_diario(fecha_insert:str=None):
         Almacena la suma de aedes, mosquitos y moscas en base de datos.
     Input:
         - fecha_insert:str Formato esperado YYYY-MM-DD. Ejemplo: "2022-12-09"
+        - device_location:str Ubicación de la cámara.
     """
     dict_resumen_diario = {}
     if fecha_insert:
-        df_datos_prediccion = get_datos_prediccion(dato_prediccion="")
+        df_datos_prediccion = get_datos_prediccion(dato_prediccion="", fecha=fecha_insert, centro=device_location)
         
         df_resumen_diario = df_datos_prediccion.groupby(["foto_fecha", "centro"])\
                                 .agg({'cantidad_aedes': 'sum', 
@@ -122,9 +123,6 @@ def insert_resumen_diario(fecha_insert:str=None):
                                       'timestamp_procesamiento': 'last'})\
                                 .sort_values(by=["foto_fecha", "centro"])\
                                 .reset_index()
-        
-        # df_resumen_diario['ultima_foto'] = df_resumen_diario['path_foto_yolo'] # S3 o relative path
-        # df_resumen_diario = df_resumen_diario.drop(["path_foto_yolo"], axis=1)
         df_resumen_diario['ultima_foto'] = df_resumen_diario['foto_yolov5'] # S3 o relative path
         df_resumen_diario = df_resumen_diario.drop(["foto_yolov5"], axis=1)
         
@@ -132,8 +130,20 @@ def insert_resumen_diario(fecha_insert:str=None):
         df_resumen_diario = df_resumen_diario.where(filtro).dropna()
 
         list_resumen_diario = json.loads(df_resumen_diario.to_json(orient="records"))
+        
         for resumen_diario in list_resumen_diario:
-            db.child(f"resumenes_diario/{fecha_insert}").push(resumen_diario)
+            # Validar si crear un nuevo nodo o actualizar
+            key_find = f"resumenes_diario/{fecha_insert}/{device_location}"
+            resultado_fechas = db.child(key_find).get().val()
+        
+            if resultado_fechas is None:
+                db.child(key_find).set(resumen_diario)
+                print(f"Registro exitoso en base de datos para la fecha {fecha_insert} y device_location {device_location}.")
+
+            if resultado_fechas:
+                db.child(key_find).update(resumen_diario)
+                print(f"Actualización exitosa en base de datos para la fecha {fecha_insert} y device_location {device_location}.")
+                
             dict_resumen_diario[fecha_insert,resumen_diario["centro"]] = resumen_diario
         return dict_resumen_diario
     return dict_resumen_diario

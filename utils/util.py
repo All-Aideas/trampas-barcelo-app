@@ -40,8 +40,6 @@ def predict_objects_from_s3(reprocessing:bool=False):
         if not reprocessing:
             df_fotos_procesadas = get_datos_prediccion()
             if not df_fotos_procesadas.empty:
-                # print(df_fotos_procesadas[['path_foto_raw']])
-                # print(df_fotos_procesadas.columns)
                 df_fotos_procesadas = df_fotos_procesadas[['path_foto_raw']]
                 path_files_will_be_processed = [elemento for elemento in path_files_valid if elemento not in df_fotos_procesadas['path_foto_raw'].unique()]
                 print(f"Archivos JPG que serán procesados {path_files_will_be_processed}")
@@ -68,7 +66,7 @@ def get_valid_file(full_path:str):
         flag, _ = is_valid_format(nombre_archivo)
         
         if flag:
-            print(f"Ubicación de archivo en el bucket: {full_path}")
+            # print(f"Ubicación de archivo en el bucket: {full_path}")
             return full_path
         return None
     except Exception as e:
@@ -156,8 +154,9 @@ def predict_casos(nombre_imagen, encoded_string):
         
         flag, timestamp = is_valid_format(nombre_archivo)
         if flag:
-            foto_fecha = timestamp.strftime('%Y-%m-%d')
-            return aedes, mosquitos, moscas, path_foto_yolo, foto_fecha
+            foto_date = timestamp.strftime('%Y-%m-%d')
+            foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            return aedes, mosquitos, moscas, path_foto_yolo, foto_date, foto_datetime
         return 0, 0, 0, None, None
     except Exception as e:
         print(f"Ocurrió un error en el proceso de invocar el API de YOLO. Detalle del error: {e}")
@@ -267,11 +266,11 @@ def get_casos_por_centro_from_s3(full_path_file_download:list):
     Analizar cada una de las imágenes descargadas por la IA.
     """
     try:
-        fechas_fotos = set() # Lista de las fechas de las fotos que fueron procesadas correctamente.
+        fechas_fotos_device_locations = set() # Lista de las fechas de las fotos que fueron procesadas correctamente.
 
         for full_path_bucket in full_path_file_download:
             image_base64 = get_image_base64(full_path_bucket)
-            aedes, mosquitos, moscas, path_foto_yolo, foto_fecha = predict_casos(full_path_bucket, image_base64)
+            aedes, mosquitos, moscas, path_foto_yolo, foto_fecha, foto_datetime = predict_casos(full_path_bucket, image_base64)
 
             partes_ruta = os.path.normpath(full_path_bucket).split(os.path.sep)
             
@@ -279,25 +278,24 @@ def get_casos_por_centro_from_s3(full_path_file_download:list):
             device_id = partes_ruta[2] # Obtener el código del dispositivo
 
             if foto_fecha:
-                fechas_fotos.add(foto_fecha)
+                fechas_fotos_device_locations.add((foto_fecha, device_location))
 
                 path_foto_raw = full_path_bucket
-                # print(f"path_foto_raw: {path_foto_raw}")
-                url_imagen_yolov5 = get_url_imagen(path_foto_yolo)
-                # print(f"url_imagen_yolov5: {url_imagen_yolov5}")
-                url_imagen_foto_original = get_url_imagen(path_foto_yolo.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
-                # print(f"url_imagen_foto_original: {url_imagen_foto_original}")
                 
-                datos_json = campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha)
+                url_imagen_yolov5 = get_url_imagen(path_foto_yolo)
+                
+                url_imagen_foto_original = get_url_imagen(path_foto_yolo.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
+                
+                datos_json = campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime)
                 insert_dato_prediccion(device_location, datos_json)
-        return fechas_fotos
+        return fechas_fotos_device_locations
     except Exception as e:
         print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
-        return fechas_fotos
+        return fechas_fotos_device_locations
 
 
-def contabilizar_resumen_diario(fecha):
-    insert_resumen_diario(fecha)
+def contabilizar_resumen_diario(fecha, device_location):
+    insert_resumen_diario(fecha, device_location)
 
 
 def marcador_casos(fecha):
@@ -348,10 +346,10 @@ def is_valid_format(nombre_archivo):
 
     try:
         timestamp = datetime.strptime(nombre_archivo, PATRON_FORMATO)
-        print(f"El timestamp obtenido: {timestamp}")
+        # print(f"El timestamp obtenido: {timestamp}")
         return True, timestamp
     except ValueError:
-        print("El formato del nombre del archivo no es válido.")
+        print(f"El formato del nombre del archivo no es válido. El nombre del archivo es: {nombre_archivo}")
         return False, None
     except Exception as e:
         print(f"Error durante la validación del formato del archivo. {e}")
@@ -362,7 +360,7 @@ def is_valid_location(device_location:str):
     """Validar que el device_location se encuentre en la base de datos."""
     try:
         if lista_centros_prevencion.get(device_location):
-            print(f"El device_location es válido: {device_location}")
+            # print(f"El device_location es válido: {device_location}")
             return True, device_location
         return False, None
     except Exception as e:

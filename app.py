@@ -31,10 +31,10 @@ def predict_photos():
             full_path_file_download = predict_objects_from_s3()
             
             if full_path_file_download is not None:
-                fechas_fotos = get_casos_por_centro_from_s3(full_path_file_download)
+                fechas_fotos_device_locs = get_casos_por_centro_from_s3(full_path_file_download)
 
-                for fecha_foto in fechas_fotos:
-                    contabilizar_resumen_diario(fecha_foto)
+                for fecha_foto, device_location in fechas_fotos_device_locs:
+                    contabilizar_resumen_diario(fecha_foto, device_location)
                 
                 return jsonify({"status": "OK"}), 200
             return jsonify({"error": "Error durante descarga de objetos del bucket."}), 503
@@ -60,7 +60,8 @@ def obtener_resumen_diario():
     """
     try:
         fecha = request.args.get("fecha")
-        contabilizar_resumen_diario(fecha)
+        device_location = request.args.get("device_location")
+        contabilizar_resumen_diario(fecha, device_location)
         return jsonify({"status": "OK"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 503

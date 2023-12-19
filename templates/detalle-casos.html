@@ -84,12 +84,12 @@
                 <tbody>
                     {% for resumen_diario in resumenes_diario_detalle %}
                     <tr onclick="verImagenes('{{ resumen_diario.fecha|int }}', 
-                                            '{{ resumen_diario.fecha_formato }}',
+                                            '{{ resumen_diario.foto_datetime }}',
                                             '{{ resumen_diario.centro }}',
                                             '{{ resumen_diario.centro_nombre }}', 
                                             '{{ resumen_diario.foto_original }}',
                                             '{{ resumen_diario.foto_yolov5 }}' )">
-                        <td>{{ resumen_diario.fecha_formato }}</td>
+                        <td>{{ resumen_diario.foto_datetime }}</td>
                         <td>{{ resumen_diario.centro_nombre }}</td>
                         <td>{{ resumen_diario.device_id }}</td>
                         <td>{{ resumen_diario.cantidad_aedes|int }}</td>
