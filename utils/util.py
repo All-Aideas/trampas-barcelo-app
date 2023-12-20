@@ -3,10 +3,9 @@ import base64
 import urllib3
 import json
 import folium
-import io, base64
-# from utils.date_format import get_str_format_from_date_str
+import base64
 from database.connect import get_lista_centros, get_datos_resumen_diario, campos_json, insert_dato_prediccion, get_datos_prediccion, get_timestamp_from_date, get_timestamp_format, insert_resumen_diario
-from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, PATH_TEMPORAL, AWS_BUCKET_RAW, lista_centros_prevencion
+from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, AWS_BUCKET_RAW, lista_centros_prevencion
 import pandas as pd
 from datetime import datetime
 
@@ -25,12 +24,8 @@ def predict_objects_from_s3(reprocessing:bool=False):
         - Lista: Ubicación de cada archivo descargado.
     """
     try:
-        # carpeta_temporal = PATH_TEMPORAL
         prefix_bucket = AWS_BUCKET_RAW
 
-        # Crea una carpeta temporal para almacenar las descargas
-        # os.makedirs(carpeta_temporal, exist_ok=True)
-        
         objetos = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix_bucket)
         archivos_jpg = [objeto['Key'] for objeto in objetos.get('Contents', []) if objeto['Key'].endswith('.jpg')]
         # print(f"Archivos del bucket: {archivos_jpg}")
@@ -103,7 +98,6 @@ def upload_imagen_s3(base64_str, full_path):
 
         ruta_normalizada = os.path.normpath(full_path)
         partes_ruta = ruta_normalizada.split(os.path.sep)
-        # root_path = ["static", "yolov5"] + partes_ruta[1:-1] # Carpeta donde se encontrarán los archivos procesados.
         root_path = ["yolov5"] + partes_ruta[1:-1] # Carpeta donde se encontrarán los archivos procesados.
         full_path_imagen_tmp = root_path + [partes_ruta[-1]]
         root_path_bucket = ["yolov5"] + partes_ruta[1:]
@@ -326,18 +320,6 @@ def lista_casos(fecha_formato=None, centro=None):
         df_datos_prediccion = get_datos_prediccion(fecha=fecha_formato, centro=centro)
         json_datos_resumen_diario_detalle = json.loads(df_datos_prediccion.to_json(orient="records"))
     return json_datos_resumen_diario, json_datos_resumen_diario_detalle
-
-
-def get_ultima_foto(timestamp_value=None, centro_codigo=None):
-    """ Obtiene la última foto procesada a partir de la fecha y el código del centro.
-    Input:
-    - timestamp_value: Fecha en timestamp.
-    - centro_codigo: Código del centro.
-    Output:
-    - URL de la imagen procesada por la inteligencia artificial.
-    """
-    df_datos_prediccion = get_datos_prediccion(dato_prediccion=centro_codigo, fecha=timestamp_value, centro=centro_codigo)
-    return df_datos_prediccion.iloc[0]["foto_yolov5"]
 
 
 def is_valid_format(nombre_archivo):

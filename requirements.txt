@@ -6,3 +6,4 @@ boto3
 python-dotenv==1.0.0
 pandas==1.5.2
 openpyxl
+apscheduler

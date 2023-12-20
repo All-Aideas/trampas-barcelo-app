@@ -1,10 +1,12 @@
 """Web App para mostrar mapa de casos en Vicente López.
 """
-from flask import Flask, render_template, request, jsonify
-# from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import folium
+from flask import Flask, render_template, request, jsonify
+from apscheduler.schedulers.background import BackgroundScheduler
+from utils.date_format import get_datetime
 from utils.util import predict_objects_from_s3, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario, get_image_base64
+from utils.config import SCHEDULER_HORAS, SCHEDULER_MINUTOS
 
 file_env = open(".env", "r")
 file_config = open(os.path.join("static", "config.js"), "w")
@@ -27,24 +29,35 @@ def predict_photos():
     y almacena en base de datos.
     """
     try:
-        with app.app_context():
-            full_path_file_download = predict_objects_from_s3()
-            
-            if full_path_file_download is not None:
-                fechas_fotos_device_locs = get_casos_por_centro_from_s3(full_path_file_download)
+        datetime_inicio = get_datetime()
+        print(f"Inicia el proceso predict_photos: {datetime_inicio}")
 
-                for fecha_foto, device_location in fechas_fotos_device_locs:
-                    contabilizar_resumen_diario(fecha_foto, device_location)
-                
-                return jsonify({"status": "OK"}), 200
-            return jsonify({"error": "Error durante descarga de objetos del bucket."}), 503
+        full_path_file_download = predict_objects_from_s3()
+        
+        if full_path_file_download is not None:
+            fechas_fotos_device_locs = get_casos_por_centro_from_s3(full_path_file_download)
+
+            for fecha_foto, device_location in fechas_fotos_device_locs:
+                contabilizar_resumen_diario(fecha_foto, device_location)
+            
+            key, message, code = "status", "OK", 200
+        key, message, code = "error", "Error durante descarga de objetos del bucket.", 503
     except Exception as e:
-        return jsonify({"error": str(e)}), 503
+        datetime_fin = get_datetime()
+        print(f"Error durante el proceso predict_photos: {datetime_fin} {e}")
+        key, message, code = "error", str(e), 503
+    finally:
+        datetime_fin = get_datetime()
+        print(f"Finaliza el proceso predict_photos: {datetime_fin}")
+        return jsonify({key: message}), code
+
 
 
 @app.route('/predict')
 def predecir():
-    return predict_photos()
+    with app.app_context():
+        response = predict_photos()
+    return response
 
 
 @app.route('/resumen_diario')
@@ -115,9 +128,9 @@ def marcador_casos(fecha=None):
     mapa.save('templates/mapa.html')
 
 # Ejecutar periodicamente
-# scheduler = BackgroundScheduler()
-# scheduler.add_job(predict_photos, trigger='interval', hours=0, minutes=5)
-# scheduler.start()
+scheduler = BackgroundScheduler()
+scheduler.add_job(predecir, trigger='interval', hours=SCHEDULER_HORAS, minutes=SCHEDULER_MINUTOS)
+scheduler.start()
 
 # Iniciar aplicación
 if __name__ == "__main__":

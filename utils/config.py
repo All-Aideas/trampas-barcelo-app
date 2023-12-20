@@ -6,6 +6,11 @@ import pandas as pd
 
 load_dotenv()
 
+# Scheduler
+SCHEDULER_HORAS = int(os.getenv("SCHEDULER_HORAS"), 0)
+SCHEDULER_MINUTOS = int(os.getenv("SCHEDULER_MINUTOS"), 0)
+
+
 # Config Firebase
 FIREBASE_USER = os.getenv("FIREBASE_USER")
 FIREBASE_PASSWORD = os.getenv("FIREBASE_PASSWORD")
@@ -51,15 +56,6 @@ session = boto3.Session(
 )
 
 s3 = session.client('s3')
-
-# Config API
-# lista_centros_prevencion = {
-#     "MVL001": ["Oficinas Modernización", "Av. Maipú 2502, B1636AAR Olivos, Provincia de Buenos Aires, Argentina", [-34.51222612434279, -58.49020586908288]],
-#     "MVL005": ["Centro Universitario Vicente López", "Carlos Villate 4480, B1605EKT Munro, Provincia de Buenos Aires, Argentina", [-34.53156552888027, -58.519968291402265]],
-#     "MVL002": ["Hospital Municipal Dr. Bernardo Houssay", "Pres. Hipólito Yrigoyen 1757, Florida, Provincia de Buenos Aires, Argentina", [-34.5217910510323, -58.48992035822424]],
-#     "MVL003": ["Honorable Concejo Deliberante de Vicente López", "AAF, Av. Maipú 2502, B1636 Olivos, Provincia de Buenos Aires, Argentina", [-34.51214514705522, -58.49007573743368]],
-#     "MVL004": ["Campo de Deportes Municipal", "Pelliza, Olivos, Provincia de Buenos Aires, Argentina", [-34.512933493180974, -58.50444092807812]]
-# }
 
 df = pd.read_excel('UbicacionesTrampas.xlsx')
 lista_centros_prevencion = df.set_index('Código')[['EDIFICIOS MUNICIPALES', 'Latitud', 'Longitud', 'Dirección', 'Localidad']].apply(tuple, axis=1).to_dict()

@@ -57,24 +57,19 @@ def insert_dato_prediccion(centro, datos_prediccion_foto):
     return db.child(f"predicciones_foto/{centro}").push(datos_prediccion_foto)
 
 
-def get_datos_prediccion(dato_prediccion="", fecha=None, centro=None):
+def get_datos_prediccion(fecha=None, centro=None):
     """ Obtener los datos almacenados en base de datos.
     """
     try:
         df_resultados_por_centro = pd.DataFrame()
-        key_find = "predicciones_foto" if dato_prediccion == "" else f"predicciones_foto/{dato_prediccion}"
+        key_find = "predicciones_foto"
         resultado = db.child(key_find).get().val()
         
-        if dato_prediccion != "":
-            for resultados_por_foto in resultado.keys():
-                resultado_por_foto = resultado[resultados_por_foto]
-                df_resultados_por_centro = df_resultados_por_centro.append(resultado_por_foto, ignore_index=True)
-        else:
-            for resultados_por_foto in resultado.keys():
-                resultado_por_foto = resultado[resultados_por_foto]
-                for identificador_foto in resultado_por_foto.keys():
-                    new_row = pd.DataFrame([resultado_por_foto[identificador_foto]])
-                    df_resultados_por_centro = pd.concat([df_resultados_por_centro, new_row], ignore_index=True)
+        for resultados_por_foto in resultado.keys():
+            resultado_por_foto = resultado[resultados_por_foto]
+            for identificador_foto in resultado_por_foto.keys():
+                new_row = pd.DataFrame([resultado_por_foto[identificador_foto]])
+                df_resultados_por_centro = pd.concat([df_resultados_por_centro, new_row], ignore_index=True)
 
         df_resultados_por_centro["fecha"] = df_resultados_por_centro["foto_fecha"]\
                                                 .apply(lambda col: col)
@@ -112,7 +107,7 @@ def insert_resumen_diario(fecha_insert:str=None, device_location:str=None):
     """
     dict_resumen_diario = {}
     if fecha_insert:
-        df_datos_prediccion = get_datos_prediccion(dato_prediccion="", fecha=fecha_insert, centro=device_location)
+        df_datos_prediccion = get_datos_prediccion(fecha=fecha_insert, centro=device_location)
         
         df_resumen_diario = df_datos_prediccion.groupby(["foto_fecha", "centro"])\
                                 .agg({'cantidad_aedes': 'sum', 

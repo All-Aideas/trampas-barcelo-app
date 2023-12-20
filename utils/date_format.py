@@ -31,5 +31,6 @@ def get_str_date_tz_from_timestamp(int_timestamp_value, format="%Y-%m-%d"):
     argentina_dt = utc_dt.replace(tzinfo=pytz.utc).astimezone(tz_argentina)
     formatted_datetime = argentina_dt.strftime(format)
     return formatted_datetime
-    # utc_dt = utc.localize(datetime.utcfromtimestamp(int_timestamp_value))
-    # return utc_dt.strftime(format)
+
+def get_datetime(format='%Y-%m-%d %H:%M:%S'):
+    return datetime.now(pytz.timezone('America/Argentina/Buenos_Aires')).strftime(format)
