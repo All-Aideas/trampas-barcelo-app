@@ -41,7 +41,8 @@ def predict_photos():
                 contabilizar_resumen_diario(fecha_foto, device_location)
             
             key, message, code = "status", "OK", 200
-        key, message, code = "error", "Error durante descarga de objetos del bucket.", 503
+        else:
+            key, message, code = "error", "Error durante descarga de objetos del bucket.", 503
     except Exception as e:
         datetime_fin = get_datetime()
         print(f"Error durante el proceso predict_photos: {datetime_fin} {e}")
