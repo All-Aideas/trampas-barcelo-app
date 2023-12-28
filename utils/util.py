@@ -4,11 +4,12 @@ import urllib3
 import json
 import folium
 import base64
-from database.connect import get_lista_centros, get_datos_resumen_diario, campos_json, insert_dato_prediccion, get_datos_prediccion, get_timestamp_from_date, get_timestamp_format, insert_resumen_diario
-from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, AWS_BUCKET_RAW, lista_centros_prevencion
+from database.connect import ConnectDataBase, get_timestamp_from_date, get_timestamp_format
+from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, AWS_BUCKET_RAW
 import pandas as pd
 from datetime import datetime
 
+connectdb = ConnectDataBase()
 
 def predict_objects_from_s3(reprocessing:bool=False):
     """
@@ -33,7 +34,7 @@ def predict_objects_from_s3(reprocessing:bool=False):
         # print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
         
         if not reprocessing:
-            df_fotos_procesadas = get_datos_prediccion()
+            df_fotos_procesadas = connectdb.get_datos_prediccion()
             if not df_fotos_procesadas.empty:
                 df_fotos_procesadas = df_fotos_procesadas[['path_foto_raw']]
                 path_files_will_be_processed = [elemento for elemento in path_files_valid if elemento not in df_fotos_procesadas['path_foto_raw'].unique()]
@@ -151,10 +152,10 @@ def predict_casos(nombre_imagen, encoded_string):
             foto_date = timestamp.strftime('%Y-%m-%d')
             foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
             return aedes, mosquitos, moscas, path_foto_yolo, foto_date, foto_datetime
-        return 0, 0, 0, None, None
+        return 0, 0, 0, None, None, None
     except Exception as e:
         print(f"Ocurrió un error en el proceso de invocar el API de YOLO. Detalle del error: {e}")
-        return 0, 0, 0, None, None
+        return 0, 0, 0, None, None, None
 
 
 def get_casos_por_centro(mapa, fecha=None):
@@ -171,17 +172,17 @@ def get_casos_por_centro(mapa, fecha=None):
     Output:
         - None.
     """
-    centros_prevencion = get_lista_centros()
+    centros_prevencion = connectdb.get_lista_centros()
     # print(centros_prevencion)
 
-    df_resumenes_diario = get_datos_resumen_diario(fecha)
+    df_resumenes_diario = connectdb.get_datos_resumen_diario(fecha)
     # print(df_resumenes_diario)
     if df_resumenes_diario.empty:
         for centro in centros_prevencion.keys():
-            centro_lat = centros_prevencion[centro][1]
-            centro_lng = centros_prevencion[centro][2]
+            centro_lat = centros_prevencion[centro]["latitud"]#centros_prevencion[centro][1]
+            centro_lng = centros_prevencion[centro]["longitud"]#centros_prevencion[centro][2]
             centro_lat_lng = [centro_lat, centro_lng]
-            centro_nombre = centros_prevencion[centro][0]
+            centro_nombre = centros_prevencion[centro]["nombre_centro"]#centros_prevencion[centro][0]
             set_market(mapa, lat_lng=centro_lat_lng, 
                     name=centro_nombre)
     else:
@@ -191,7 +192,7 @@ def get_casos_por_centro(mapa, fecha=None):
         
         # Convertir el diccionario a DataFrame
         centro_df = pd.DataFrame.from_dict(centros_prevencion, orient='index',
-                                        columns=['nombre_centro', 'latitud', 'longitud', 'direccion', 'ciudad']).reset_index()
+                                        columns=['nombre_centro', 'latitud', 'longitud', 'direccion', 'localidad']).reset_index()
 
         # Renombrar la columna 'index' a 'centro' para que coincida con el DataFrame original
         centro_df = centro_df.rename(columns={'index': 'centro'})
@@ -280,8 +281,8 @@ def get_casos_por_centro_from_s3(full_path_file_download:list):
                 
                 url_imagen_foto_original = get_url_imagen(path_foto_yolo.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
                 
-                datos_json = campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime)
-                insert_dato_prediccion(device_location, datos_json)
+                datos_json = connectdb.campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime)
+                connectdb.insert_dato_prediccion(device_location, datos_json)
         return fechas_fotos_device_locations
     except Exception as e:
         print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
@@ -289,7 +290,7 @@ def get_casos_por_centro_from_s3(full_path_file_download:list):
 
 
 def contabilizar_resumen_diario(fecha, device_location):
-    insert_resumen_diario(fecha, device_location)
+    connectdb.insert_resumen_diario(fecha, device_location)
 
 
 def marcador_casos(fecha):
@@ -311,13 +312,13 @@ def lista_casos(fecha_formato=None, centro=None):
     if fecha_formato is not None:
         marcador_casos(fecha_formato)
 
-    df_resumen_diario = get_datos_resumen_diario()
+    df_resumen_diario = connectdb.get_datos_resumen_diario()
 
     json_datos_resumen_diario = json.loads(df_resumen_diario.to_json(orient="records"))
     
     json_datos_resumen_diario_detalle = []
     if fecha_formato is not None and centro is not None:
-        df_datos_prediccion = get_datos_prediccion(fecha=fecha_formato, centro=centro)
+        df_datos_prediccion = connectdb.get_datos_prediccion(fecha=fecha_formato, centro=centro)
         json_datos_resumen_diario_detalle = json.loads(df_datos_prediccion.to_json(orient="records"))
     return json_datos_resumen_diario, json_datos_resumen_diario_detalle
 
@@ -341,7 +342,8 @@ def is_valid_format(nombre_archivo):
 def is_valid_location(device_location:str):
     """Validar que el device_location se encuentre en la base de datos."""
     try:
-        if lista_centros_prevencion.get(device_location):
+        lista_centros = connectdb.get_lista_centros()
+        if lista_centros.get(device_location):
             # print(f"El device_location es válido: {device_location}")
             return True, device_location
         return False, None

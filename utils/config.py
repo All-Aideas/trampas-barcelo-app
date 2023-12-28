@@ -57,5 +57,5 @@ session = boto3.Session(
 
 s3 = session.client('s3')
 
-df = pd.read_excel('UbicacionesTrampas.xlsx')
-lista_centros_prevencion = df.set_index('Código')[['EDIFICIOS MUNICIPALES', 'Latitud', 'Longitud', 'Dirección', 'Localidad']].apply(tuple, axis=1).to_dict()
+# df = pd.read_excel('UbicacionesTrampas.xlsx')
+# lista_centros_prevencion = df.set_index('Código')[['EDIFICIOS MUNICIPALES', 'Latitud', 'Longitud', 'Dirección', 'Localidad']].apply(tuple, axis=1).to_dict()
