@@ -22,7 +22,9 @@
         $('#tabla_resumenes_diario_datos').DataTable({
             order: [[0, 'asc']],
         });
-        $('#tabla_resumenes_diario_detalle').DataTable();
+        $('#tabla_resumenes_diario_detalle').DataTable({
+            order: [[0, 'asc']],
+        });
         $('.container_imagen').css('display','none');
     });
   </script>
@@ -66,9 +68,10 @@
         <div class="item_dashboard_mapa container_dashboard_item">
             <iframe id="mapa" class="dashboard_mapa" src="/mapa" width="100%" height="100%"></iframe>
         </div>
+    </div>
+    <div class="container_dashboard_body">
 
-
-        <div class="item_dashboard_tabla container_dashboard_item">
+        <div class="item_dashboard_tabla_detail container_dashboard_item">
             <table id="tabla_resumenes_diario_detalle" class="table table-striped" style="width:100%">
                 <thead>
                     <tr>
