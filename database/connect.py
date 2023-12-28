@@ -39,11 +39,6 @@ class ConnectDataBase():
             return resultado
 
 
-    def get_nombre_del_centro(self, centro_codigo):
-        centros = self.get_lista_centros()
-        return centros.get(centro_codigo, {}).get("nombre_centro", "")
-
-
     def campos_json(self, device_location, device_id, aedes, mosquitos, moscas, foto_original, foto_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime):
         timestamp = get_timestamp()
         return {
@@ -89,8 +84,10 @@ class ConnectDataBase():
                                                     .apply(lambda col: get_datetime_from_str(col))
             df_resultados_por_centro["fecha_formato"] = df_resultados_por_centro["foto_fecha"]\
                                                     .apply(lambda col: get_str_format_from_date_str(col))
+            
+            centros = self.get_lista_centros()
             df_resultados_por_centro["centro_nombre"] = df_resultados_por_centro["centro"]\
-                                                    .apply(lambda col: self.get_nombre_del_centro(col))
+                                                    .apply(lambda centro_codigo: centros.get(centro_codigo, {}).get("nombre_centro", ""))
             
             df_resultados_por_centro["path_foto_yolo"] = df_resultados_por_centro["path_foto_yolo"] # Visualizar foto en HTML
             df_resultados_por_centro["foto_yolov5"] = df_resultados_por_centro["path_foto_yolo"]
