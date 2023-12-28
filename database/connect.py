@@ -148,26 +148,28 @@ def get_datos_resumen_diario(fecha_filtro=None):
     """Obtener las cantidades de aedes, mosquitos y moscas detectadas por día.
     """
     df_resumen_diario = pd.DataFrame()
-
-    key_find = f"resumenes_diario"
-    if fecha_filtro:
-        key_find = f"{key_find}/{fecha_filtro}"
-        resultado = db.child(key_find).get().val()
-        if not resultado:
-            return df_resumen_diario
-        resumenes_diarios = [resultado[col] for col in resultado.keys()]
-    else:
-        resultado = db.child(key_find).get().val()
-        resumenes_diarios = [item for sublist in [resultado[col].values() for col in resultado.keys()] for item in sublist]
-
-    if resultado is not None:
-        df_resumen_diario = pd.DataFrame(resumenes_diarios)
-        df_resumen_diario = df_resumen_diario.sort_values(by=["foto_fecha", "centro"]).sort_values(by=["foto_fecha"], ascending=False)
+    try:
+        key_find = f"resumenes_diario"
         if fecha_filtro:
-            return df_resumen_diario
+            key_find = f"{key_find}/{fecha_filtro}"
+            resultado = db.child(key_find).get().val()
+            if not resultado:
+                return df_resumen_diario
+            resumenes_diarios = [resultado[col] for col in resultado.keys()]
         else:
-            df_resumen_diario["fecha_formato"] = df_resumen_diario["foto_fecha"].apply(get_str_format_from_date_str)
-            df_resumen_diario["centro_nombre"] = df_resumen_diario["centro"].apply(get_nombre_del_centro)
-            return df_resumen_diario
+            resultado = db.child(key_find).get().val()
+            resumenes_diarios = [item for sublist in [resultado[col].values() for col in resultado.keys()] for item in sublist]
 
-    return df_resumen_diario
+        if resultado is not None:
+            df_resumen_diario = pd.DataFrame(resumenes_diarios)
+            df_resumen_diario = df_resumen_diario.sort_values(by=["foto_fecha", "centro"]).sort_values(by=["foto_fecha"], ascending=False)
+            if fecha_filtro:
+                return df_resumen_diario
+            else:
+                df_resumen_diario["fecha_formato"] = df_resumen_diario["foto_fecha"].apply(get_str_format_from_date_str)
+                df_resumen_diario["centro_nombre"] = df_resumen_diario["centro"].apply(get_nombre_del_centro)
+                return df_resumen_diario
+    except Exception as e:
+        print(f"Ocurrió un error durante la consulta del resumen en la base de datos. Detalle del error: {e}")
+    finally:
+        return df_resumen_diario
