@@ -51,6 +51,7 @@
 .container_dashboard_item {
     flex: min-content;
     margin: 0.1em;
+    min-width: 500px;
 }
 
 .container_dashboard_det_item {
