@@ -105,7 +105,7 @@ def detalle_casos():
     centro = request.args.get("centro")
     print(f"Fecha: {fecha_formato}. Centro: {centro}")
     json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato, centro)
-
+    marcador_casos(fecha=fecha_formato)
     return render_template('detalle-casos.html', 
             resumenes_diario_datos=json_datos_resumen_diario,
             resumenes_diario_detalle=json_datos_resumen_diario_detalle)
