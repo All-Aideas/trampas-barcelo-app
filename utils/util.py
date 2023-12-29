@@ -218,12 +218,12 @@ def get_casos_por_centro(mapa, fecha=None):
             url_ultima_foto = row['ultima_foto'] # Visualizar foto en HTML
             # url_ultima_foto = row['ultima_foto_base64'] # Visualizar foto en HTML
             # print(url_ultima_foto)
-            
-            texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='{url_ultima_foto}' width='100%' /></div>"
+            image_base64 = get_image_base64(url_ultima_foto)
+            texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='data:image/jpeg;base64,{image_base64}' width='100%' /></div>"
             
             texto_resumen_no_imagen = f"<div>No hay fotos del día {ultima_fecha_procesada}.</div>"
-            texto_resumen_imagen = texto_resumen_imagen if len(url_ultima_foto) > 0 else texto_resumen_no_imagen
-            mostrar_descripcion = True if len(url_ultima_foto) > 0 else False
+            texto_resumen_imagen = texto_resumen_imagen if len(image_base64) > 0 else texto_resumen_no_imagen
+            mostrar_descripcion = True if len(image_base64) > 0 else False
 
             aedes_total, mosquitos_total, moscas_total = row['cantidad_aedes'], row['cantidad_mosquitos'], row['cantidad_moscas']
             set_market(mapa, lat_lng=centro_lat_lng, 

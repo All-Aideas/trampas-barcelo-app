@@ -87,11 +87,8 @@
                 </thead>
                 <tbody>
                     {% for resumen_diario in resumenes_diario_detalle %}
-                    <tr onclick="verImagenes('{{ resumen_diario.fecha|int }}', 
-                                            '{{ resumen_diario.foto_datetime }}',
-                                            '{{ resumen_diario.centro }}',
+                    <tr onclick="verImagenes('{{ resumen_diario.foto_datetime }}',
                                             '{{ resumen_diario.centro_nombre }}', 
-                                            '{{ resumen_diario.foto_original }}',
                                             '{{ resumen_diario.foto_yolov5 }}' )">
                         <td>{{ resumen_diario.foto_datetime }}</td>
                         <td>{{ resumen_diario.centro_nombre }}</td>
@@ -137,7 +134,7 @@
         document.location.href = "detalle-casos?fecha_formato=" + fecha_formato + "&centro=" + centro;
     }
 
-    function verImagenes(fecha, fecha_formato, centro, centro_nombre, url_imagen_original, url_imagen_yolov5){
+    function verImagenes(fecha_formato, centro_nombre, url_imagen_yolov5){
         // url_imagen_yolov5 : Imagen en base64
         // Realizar la solicitud HTTP
         fetch("/imagen?key=" + encodeURIComponent(url_imagen_yolov5))
