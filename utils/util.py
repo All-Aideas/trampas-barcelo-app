@@ -217,7 +217,7 @@ def get_casos_por_centro(mapa, fecha=None):
 
             url_ultima_foto = row['ultima_foto'] # Visualizar foto en HTML
             # url_ultima_foto = row['ultima_foto_base64'] # Visualizar foto en HTML
-            # print(url_ultima_foto)
+            print(url_ultima_foto)
             image_base64 = get_image_base64(url_ultima_foto)
             texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='data:image/jpeg;base64,{image_base64}' width='100%' /></div>"
             
