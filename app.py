@@ -5,7 +5,7 @@ import folium
 from flask import Flask, render_template, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.date_format import get_datetime
-from utils.util import predict_objects_from_s3, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario, get_image_base64
+from utils.util import predict_objects_from_s3, marcador_casos, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario, get_image_base64
 from utils.config import SCHEDULER_HORAS, SCHEDULER_MINUTOS
 
 file_env = open(".env", "r")
@@ -21,7 +21,7 @@ for var_env in file_env:
 file_config.close()
 
 app = Flask(__name__)
-
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 def predict_photos():
     """ Descarga las imágenes del repositorio, 
@@ -116,17 +116,6 @@ def mostrar_image():
     object_key = request.args.get("key")
     return get_image_base64(object_key)
 
-
-def marcador_casos(fecha=None):
-    """ Mostrar los centros y cantidad de casos detectados.
-    """
-    mapa = folium.Map(
-        location=[-34.5106, -58.4964],
-        zoom_start=13,
-    )
-
-    get_casos_por_centro(mapa, fecha)
-    mapa.save('templates/mapa.html')
 
 # Ejecutar periodicamente
 scheduler = BackgroundScheduler()

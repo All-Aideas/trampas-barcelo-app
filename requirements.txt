@@ -1,5 +1,5 @@
 flask
-folium
+folium==0.15.1
 pillow
 pyrebase
 boto3

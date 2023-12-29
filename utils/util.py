@@ -294,7 +294,7 @@ def contabilizar_resumen_diario(fecha, device_location):
     connectdb.insert_resumen_diario(fecha, device_location)
 
 
-def marcador_casos(fecha):
+def marcador_casos(fecha=None):
     """ Mostrar los centros y cantidad de casos detectados.
     Los marcadores son almacenados en un HTML.
     """
