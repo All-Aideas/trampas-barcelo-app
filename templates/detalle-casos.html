@@ -21,6 +21,7 @@
     $(document).ready(function () {
         $('#tabla_resumenes_diario_datos').DataTable({
             order: [[0, 'asc']],
+            lengthMenu: [[10, 20, 30, -1], [10, 20, 30, 'All']]
         });
         $('#tabla_resumenes_diario_detalle').DataTable({
             order: [[0, 'asc']],
@@ -71,7 +72,7 @@
     </div>
     <div class="container_dashboard_body">
 
-        <div class="item_dashboard_tabla_detail container_dashboard_item">
+        <div class="item_dashboard_tabla_detail container_dashboard_det_item">
             <table id="tabla_resumenes_diario_detalle" class="table table-striped" style="width:100%">
                 <thead>
                     <tr>
@@ -106,7 +107,7 @@
         </div>
 
 
-        <div class="item_imagen_yolo container_dashboard_item">
+        <div class="item_imagen_yolo container_dashboard_det_item">
             <div class="container_imagen">
                 <div class="item">
                     <div>
