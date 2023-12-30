@@ -226,7 +226,7 @@ def get_casos_por_centro(mapa, fecha=None):
             texto_resumen_imagen = texto_resumen_imagen if len(image_base64) > 0 else texto_resumen_no_imagen
             mostrar_descripcion = True if len(image_base64) > 0 else False
 
-            aedes_total, mosquitos_total, moscas_total = row['cantidad_aedes'], row['cantidad_mosquitos'], row['cantidad_moscas']
+            aedes_total, mosquitos_total, moscas_total = int(row['cantidad_aedes']), int(row['cantidad_mosquitos']), int(row['cantidad_moscas'])
             set_market(mapa, lat_lng=centro_lat_lng, 
                     name=centro_nombre, 
                     description=texto_resumen_imagen, 
