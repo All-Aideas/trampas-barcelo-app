@@ -83,7 +83,7 @@ def get_image_base64(object_key):
 def invoke_api(url, encoded_string):
     headers = {'Content-Type': 'application/json'}
     cadena = f"data:image/jpeg;base64,{encoded_string}"
-    data = {"data": ["640", 0.45, 0.80, cadena]}
+    data = {"data": ["640", 0.45, 0.83, cadena]}
     body = json.dumps(data).encode('utf-8')
     http = urllib3.PoolManager()
     response = http.request("POST",
