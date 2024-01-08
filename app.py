@@ -5,7 +5,7 @@ import folium
 from flask import Flask, render_template, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.date_format import get_datetime
-from utils.util import predict_objects_from_s3, marcador_casos, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario, get_image_base64
+from utils.util import DeviceLocationService, predict_objects_from_s3, marcador_casos, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario, get_image_base64
 from utils.config import SCHEDULER_HORAS, SCHEDULER_MINUTOS
 
 file_env = open(".env", "r")
@@ -115,6 +115,27 @@ def detalle_casos():
 def mostrar_image():
     object_key = request.args.get("key")
     return get_image_base64(object_key)
+
+
+@app.route('/locations', methods=['POST'])
+def locations():
+    """
+    Descripción:
+        Registrar un nuevo municipio.
+    """
+    try:
+        device_location = request.json.get('device_location')
+        direccion = request.json.get('direccion')
+        latitud = request.json.get('latitud')
+        localidad = request.json.get('localidad')
+        longitud = request.json.get('longitud')
+        nombre_centro = request.json.get('nombre_centro')
+
+        devicelocationservice = DeviceLocationService()
+        devicelocationservice.insert_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
+        return jsonify({"status": "OK"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 503
 
 
 # Ejecutar periodicamente

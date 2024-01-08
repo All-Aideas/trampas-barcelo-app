@@ -351,3 +351,9 @@ def is_valid_location(device_location:str):
     except Exception as e:
         print(f"Error durante la validación del código de device_location. {e}")
         return False, None
+
+
+class DeviceLocationService():
+    def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
+        connectdb.insert_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
+

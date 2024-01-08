@@ -183,3 +183,16 @@ class ConnectDataBase():
             print(f"Ocurrió un error durante la consulta del resumen en la base de datos. Detalle del error: {e}")
         finally:
             return df_resumen_diario
+
+
+    def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
+        """ Registrar ubicaciones de las cámaras en base de datos.
+        """
+        data = {
+            "direccion": direccion, 
+            "latitud": latitud, 
+            "localidad": localidad, 
+            "longitud": longitud, 
+            "nombre_centro": nombre_centro
+        }
+        return db.child(f"ubicaciones_trampas/{device_location}").set(data)
