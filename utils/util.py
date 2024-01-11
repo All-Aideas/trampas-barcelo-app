@@ -29,7 +29,7 @@ def predict_objects_from_s3(reprocessing:bool=False):
 
         objetos = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix_bucket)
         archivos_jpg = [objeto['Key'] for objeto in objetos.get('Contents', []) if objeto['Key'].lower().endswith('.jpg')]
-        print(f"Archivos JPG que se encuentran la carpeta {prefix_bucket} del bucket: {archivos_jpg}")
+        # print(f"Archivos JPG que se encuentran la carpeta {prefix_bucket} del bucket: {archivos_jpg}")
         lista_centros = connectdb.get_lista_centros()
         path_files_valid = [file for file in [get_valid_file(archivo_valido, lista_centros) for archivo_valido in archivos_jpg] if file]
         # print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
@@ -38,6 +38,13 @@ def predict_objects_from_s3(reprocessing:bool=False):
             df_fotos_procesadas = connectdb.get_datos_prediccion()
             if not df_fotos_procesadas.empty:
                 df_fotos_procesadas = df_fotos_procesadas[['path_foto_raw']]
+
+                # Archivos en el bucket que no fueron procesados. No se valida la nomenclatura del nombre del archivo:
+                all_archivos_jpg = [objeto['Key'] for objeto in objetos.get('Contents', []) if objeto['Size'] > 0]
+                #print([objeto for objeto in objetos.get('Contents', [])])
+                all_path_files_will_be_processed = [elemento for elemento in all_archivos_jpg if elemento not in df_fotos_procesadas['path_foto_raw'].unique()]
+                print(f"Archivos JPG que se encuentran la carpeta {prefix_bucket} del bucket y no han sido procesados: {all_path_files_will_be_processed}\n")
+
                 path_files_will_be_processed = [elemento for elemento in path_files_valid if elemento not in df_fotos_procesadas['path_foto_raw'].unique()]
                 print(f"Archivos JPG que serán procesados {path_files_will_be_processed}")
                 path_files_valid = path_files_will_be_processed
