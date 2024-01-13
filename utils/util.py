@@ -25,26 +25,30 @@ def predict_objects_from_s3(reprocessing:bool=False):
         - Lista: Ubicación de cada archivo descargado.
     """
     try:
-        prefix_bucket = AWS_BUCKET_RAW
-
-        objetos = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix_bucket)
-        archivos_jpg = [objeto['Key'] for objeto in objetos.get('Contents', []) if objeto['Key'].lower().endswith('.jpg')]
-        # print(f"Archivos JPG que se encuentran la carpeta {prefix_bucket} del bucket: {archivos_jpg}")
+        archivos_jpg = []
+        
         lista_centros = connectdb.get_lista_centros()
-        path_files_valid = [file for file in [get_valid_file(archivo_valido, lista_centros) for archivo_valido in archivos_jpg] if file]
-        # print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
+        lista_centros = list(lista_centros.keys())
+        print(lista_centros)
+
+        for location in lista_centros:
+            prefix_bucket = f"{AWS_BUCKET_RAW}/{location}"
+
+            paginator = s3.get_paginator('list_objects_v2')
+            pages = paginator.paginate(Bucket=BUCKET_NAME, Prefix=prefix_bucket, PaginationConfig={'PageSize': 1000})
+        
+            for page in pages:
+                archivos_jpg.extend([objeto['Key'] for objeto in page.get('Contents', []) if objeto['Key'].lower().endswith('.jpg')])
+
+        #print(f"Archivos JPG que se encuentran en el bucket: {archivos_jpg}")
+        
+        path_files_valid = [file for file in [get_valid_file(archivo_valido) for archivo_valido in archivos_jpg] if file]
+        print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
         
         if not reprocessing:
             df_fotos_procesadas = connectdb.get_datos_prediccion()
             if not df_fotos_procesadas.empty:
                 df_fotos_procesadas = df_fotos_procesadas[['path_foto_raw']]
-
-                # Archivos en el bucket que no fueron procesados. No se valida la nomenclatura del nombre del archivo:
-                all_archivos_jpg = [objeto['Key'] for objeto in objetos.get('Contents', []) if objeto['Size'] > 0]
-                #print([objeto for objeto in objetos.get('Contents', [])])
-                all_path_files_will_be_processed = [elemento for elemento in all_archivos_jpg if elemento not in df_fotos_procesadas['path_foto_raw'].unique()]
-                print(f"Archivos JPG que se encuentran la carpeta {prefix_bucket} del bucket y no han sido procesados: {all_path_files_will_be_processed}\n")
-
                 path_files_will_be_processed = [elemento for elemento in path_files_valid if elemento not in df_fotos_procesadas['path_foto_raw'].unique()]
                 print(f"Archivos JPG que serán procesados {path_files_will_be_processed}")
                 path_files_valid = path_files_will_be_processed
@@ -57,15 +61,10 @@ def predict_objects_from_s3(reprocessing:bool=False):
         return None
 
 
-def get_valid_file(full_path:str, locations:dict):
+def get_valid_file(full_path:str):
     try:
         partes_ruta = os.path.normpath(full_path).split(os.path.sep)
         device_location = partes_ruta[1]
-        flag, _ = is_valid_location(device_location, locations)
-        if not flag:
-            print(f"El objeto en el bucket no pertenece a un device_location válido: {full_path}")
-            return None
-
         nombre_archivo = partes_ruta[-1]
         flag, _ = is_valid_format(nombre_archivo)
         
@@ -345,19 +344,6 @@ def is_valid_format(nombre_archivo):
         return False, None
     except Exception as e:
         print(f"Error durante la validación del formato del archivo. {e}")
-        return False, None
-
-
-def is_valid_location(device_location:str, locations:dict):
-    """Validar que el device_location se encuentre en la base de datos."""
-    try:
-        # locations = connectdb.get_lista_centros()
-        if locations.get(device_location):
-            # print(f"El device_location es válido: {device_location}")
-            return True, device_location
-        return False, None
-    except Exception as e:
-        print(f"Error durante la validación del código de device_location. {e}")
         return False, None
 
 
