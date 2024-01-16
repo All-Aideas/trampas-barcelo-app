@@ -55,4 +55,4 @@ session = boto3.Session(
 )
 
 s3 = session.client('s3')
-dynamodb = boto3.resource('dynamodb')
+dynamodb = session.resource('dynamodb')
