@@ -31,7 +31,7 @@ class ConnectDynamoDB():
         try:
             table_name = "ubicaciones_trampas"
             resultado = dynamodb.Table(table_name)
-            print(resultado)
+            print(resultado.scan())
             print(type(resultado))
         except Exception as e:
             print(f"Ocurrió un error durante la consulta de la lista de edificios en la base de datos. Detalle del error: {e}")
