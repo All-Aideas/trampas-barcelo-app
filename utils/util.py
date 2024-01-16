@@ -316,9 +316,9 @@ def marcador_casos(fecha=None):
 def lista_casos(fecha_formato=None, centro=None):
     """ Mostrar detalle de los casos.
     """
-    connection = ConnectDynamoDB()
-    connection.get_locations()
-    
+    #connection = ConnectDynamoDB()
+    #connection.get_locations()
+
     if fecha_formato is not None:
         marcador_casos(fecha_formato)
 
