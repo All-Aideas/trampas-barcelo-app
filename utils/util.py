@@ -4,7 +4,7 @@ import urllib3
 import json
 import folium
 import base64
-from database.connect import ConnectDataBase, get_timestamp_from_date, get_timestamp_format
+from database.connect import ConnectDataBase, get_timestamp_from_date, get_timestamp_format, ConnectDynamoDB
 from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, AWS_BUCKET_RAW
 import pandas as pd
 from datetime import datetime
@@ -29,8 +29,7 @@ def predict_objects_from_s3(reprocessing:bool=False):
         
         lista_centros = connectdb.get_lista_centros()
         lista_centros = list(lista_centros.keys())
-        print(lista_centros)
-
+        
         for location in lista_centros:
             prefix_bucket = f"{AWS_BUCKET_RAW}/{location}"
 
@@ -317,6 +316,9 @@ def marcador_casos(fecha=None):
 def lista_casos(fecha_formato=None, centro=None):
     """ Mostrar detalle de los casos.
     """
+    connection = ConnectDynamoDB()
+    connection.get_locations()
+    
     if fecha_formato is not None:
         marcador_casos(fecha_formato)
 

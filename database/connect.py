@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 import json
 from utils.date_format import get_datetime_from_str, get_timestamp_from_datetime, get_str_format_from_date_str, get_str_date_tz_from_timestamp
-from utils.config import db
+from utils.config import db, dynamodb
 
 
 def get_timestamp():
@@ -21,6 +21,23 @@ def get_timestamp_from_date(timestamp_value):
 def get_timestamp_format(timestamp_value, format="%d/%m/%Y"):
     date_value = datetime.fromtimestamp(timestamp_value)
     return date_value.strftime(format)
+
+
+class ConnectDynamoDB():
+    
+    def get_locations(self):
+        """Obtener los datos de los edificios que tienen trampas.
+        """
+        try:
+            table_name = "ubicaciones_trampas"
+            resultado = dynamodb.Table(table_name)
+            print(resultado)
+            print(type(resultado))
+        except Exception as e:
+            print(f"Ocurrió un error durante la consulta de la lista de edificios en la base de datos. Detalle del error: {e}")
+            resultado = {}
+        finally:
+            return resultado
 
 
 class ConnectDataBase():
