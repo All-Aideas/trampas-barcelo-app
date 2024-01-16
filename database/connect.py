@@ -30,17 +30,24 @@ class ConnectDynamoDB():
         """
         try:
             table_name = "ubicaciones_trampas"
-            #resultado = dynamodb.Table(table_name)
-            #print(resultado.scan())
-            #print(type(resultado))
+            table = dynamodb.Table(table_name)
+            #print(table.scan())
+            print(type(table))
+            table.get_item(
+                Key={
+                    'device_location': 'biblioteca_froilan'
+                }
+            )
+            item = response['Item']
+            print(item)
 
-            # Realiza la operación de escaneo para obtener todos los registros
-            response = dynamodb.scan(TableName=table_name)
+            # # Realiza la operación de escaneo para obtener todos los registros
+            # response = dynamodb.scan(TableName=table_name)
 
-            # Muestra los resultados
-            items = response['Items']
-            for item in items:
-                print(item)
+            # # Muestra los resultados
+            # items = response['Items']
+            # for item in items:
+            #     print(item)
         except Exception as e:
             print(f"Ocurrió un error durante la consulta de la lista de edificios en la base de datos. Detalle del error: {e}")
             resultado = {}
