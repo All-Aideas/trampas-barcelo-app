@@ -52,6 +52,7 @@ AWS_BUCKET_RAW = "raw"
 session = boto3.Session(
     # aws_access_key_id=AWS_API_KEY,
     # aws_secret_access_key=AWS_SECRET_KEY,
+    region_name='us-east-1'
 )
 
 s3 = session.client('s3')
