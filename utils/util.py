@@ -14,10 +14,18 @@ class DeviceLocationService():
 
     def __init__(self):
         self.repository = LocationsRepository()
+        self.data = None
+
+    def to_dataframe(self):
+        # return self.repository.all_data()
+        #df = pd.DataFrame.from_dict(self.data, orient='index',
+        #                        columns=['nombre_centro', 'latitud', 'longitud', 'direccion', 'localidad']).reset_index()
+        df = pd.DataFrame(self.data)
+        return df
 
     def all_data(self):
-        data = self.repository.all_data()
-        resultado = {item['device_location']: item for item in data}
+        self.data = self.repository.all_data()
+        resultado = {item['device_location']: item for item in self.data}
         print("Ubicaciones de las trampas por device_location")
         print(resultado)
         return resultado
@@ -188,7 +196,6 @@ def get_casos_por_centro(mapa, fecha=None, locations=[]):
     Output:
         - None.
     """
-    #centros_prevencion = connectdb.get_lista_centros()
     centros_prevencion = locations
     
     df_resumenes_diario = connectdb.get_datos_resumen_diario(fecha, centros=centros_prevencion)

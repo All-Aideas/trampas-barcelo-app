@@ -87,6 +87,9 @@ def index():
     """
     devicelocationservice = DeviceLocationService()
     locations = devicelocationservice.all_data()
+    df = devicelocationservice.to_dataframe()
+    print(df)
+    print(df.columns)
 
     marcador_casos(locations=locations)
     json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=None, centro=None, locations=locations)

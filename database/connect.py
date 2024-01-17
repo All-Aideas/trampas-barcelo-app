@@ -143,6 +143,7 @@ class ResumenesDiarioRepository():
         try:
             response = self.table.scan()
             data = response.get('Items', [])
+            print("resumenes_diario")
             print(data)
             return data
 
