@@ -33,12 +33,12 @@ class ConnectDynamoDB():
             table = dynamodb.Table(table_name)
             print(table.scan())
             print(type(table))
-            response = table.get_item(
+            resultado = table.get_item(
                 Key={
                     'device_location': 'biblioteca_froilan'
                 }
             )
-            item = response['Item']
+            item = resultado['Item']
             print(item)
 
             # # Realiza la operación de escaneo para obtener todos los registros
