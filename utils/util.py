@@ -178,10 +178,11 @@ def get_casos_por_centro(mapa, fecha=None):
     Output:
         - None.
     """
-    centros_prevencion = connectdb.get_lista_centros()
-    # print(centros_prevencion)
-
-    df_resumenes_diario = connectdb.get_datos_resumen_diario(fecha)
+    #centros_prevencion = connectdb.get_lista_centros()
+    devicelocationservice = DeviceLocationService()
+    centros_prevencion = devicelocationservice.get_locations()
+    
+    df_resumenes_diario = connectdb.get_datos_resumen_diario(fecha, centros=centros_prevencion)
     # print(df_resumenes_diario)
     if df_resumenes_diario.empty:
         for centro in centros_prevencion.keys():
@@ -316,13 +317,13 @@ def marcador_casos(fecha=None):
 def lista_casos(fecha_formato=None, centro=None):
     """ Mostrar detalle de los casos.
     """
-    connection = ConnectDynamoDB()
-    connection.get_locations()
+    devicelocationservice = DeviceLocationService()
+    locations = devicelocationservice.get_locations()
     
     if fecha_formato is not None:
         marcador_casos(fecha_formato)
 
-    df_resumen_diario = connectdb.get_datos_resumen_diario()
+    df_resumen_diario = connectdb.get_datos_resumen_diario(centros=locations)
 
     json_datos_resumen_diario = json.loads(df_resumen_diario.to_json(orient="records"))
     
@@ -350,6 +351,15 @@ def is_valid_format(nombre_archivo):
 
 
 class DeviceLocationService():
+
+    dyn_locations = ConnectDynamoDB("ubicaciones_trampas")
+
+    def get_locations(self):
+        data = dyn_locations.get_locations()
+        resultado = {item['device_location']: item for item in data}
+        return resultado
+
     def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
-        connectdb.insert_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
+        #connectdb.insert_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
+        dyn_locations.add_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
 

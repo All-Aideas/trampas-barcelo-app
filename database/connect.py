@@ -24,35 +24,51 @@ def get_timestamp_format(timestamp_value, format="%d/%m/%Y"):
 
 
 class ConnectDynamoDB():
+
+    def __init__(self, dyn_resource, table_name):
+        self.dyn_resource = dynamodb
+        self.table = self.dyn_resource.Table(table_name)
     
     def get_locations(self):
         """Obtener los datos de los edificios que tienen trampas.
         """
         try:
-            table_name = "ubicaciones_trampas"
-            table = dynamodb.Table(table_name)
-            print(table.scan())
-            print(type(table))
-            resultado = table.get_item(
-                Key={
-                    'device_location': 'biblioteca_froilan'
-                }
-            )
-            item = resultado['Item']
-            print(item)
-
-            # # Realiza la operación de escaneo para obtener todos los registros
-            # response = dynamodb.scan(TableName=table_name)
-
-            # # Muestra los resultados
-            # items = response['Items']
-            # for item in items:
-            #     print(item)
+            table = self.table
+            response = table.scan()
+            data = response.get('Items', [])
+            print(data)
+            
+            # print(type(table))
+            # resultado = table.get_item(
+            #     Key={
+            #         'device_location': 'biblioteca_froilan'
+            #     }
+            # )
+            # item = resultado['Item']
+            # print(item)
         except Exception as e:
             print(f"Ocurrió un error durante la consulta de la lista de edificios en la base de datos. Detalle del error: {e}")
-            resultado = {}
+            resultado = []
         finally:
             return resultado
+
+    def add_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
+        """ Registrar ubicaciones de las cámaras en base de datos.
+        """
+        timestamp = get_timestamp()
+        try:
+            data = {
+                "device_location": device_location,
+                "direccion": direccion, 
+                "latitud": Decimal(str(latitud)), 
+                "localidad": localidad, 
+                "longitud": Decimal(str(longitud)), 
+                "nombre_centro": nombre_centro,
+                "fecha_registro": get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")
+            }
+            self.table.put_item(Item=data)
+        except Exception as err:
+            print(f"Ocurrió un error durante el registro de un edificio en la base de datos. Detalle del error: {err}")
 
 
 class ConnectDataBase():
@@ -185,7 +201,7 @@ class ConnectDataBase():
         return dict_resumen_diario
 
 
-    def get_datos_resumen_diario(self, fecha_filtro=None):
+    def get_datos_resumen_diario(self, fecha_filtro=None, centros={}):
         """Obtener las cantidades de aedes, mosquitos y moscas detectadas por día.
         """
         df_resumen_diario = pd.DataFrame()
@@ -208,7 +224,7 @@ class ConnectDataBase():
                     return df_resumen_diario
                 else:
                     df_resumen_diario["fecha_formato"] = df_resumen_diario["foto_fecha"].apply(get_str_format_from_date_str)
-                    centros = self.get_lista_centros()
+                    #centros = self.get_lista_centros()
                     df_resumen_diario["centro_nombre"] = df_resumen_diario["centro"].apply(lambda centro_codigo: centros.get(centro_codigo, {}).get("nombre_centro", ""))
                     return df_resumen_diario
         except Exception as e:
