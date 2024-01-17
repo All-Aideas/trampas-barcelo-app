@@ -100,7 +100,7 @@ class PrediccionesFotoRepository():
         """
         try:
             response = self.table.scan()
-            data = response.get('Items', [])
+            resultado = response.get('Items', [])
         except Exception as e:
             print(f"Ocurrió un error durante la consulta de la tabla predicciones_foto en la base de datos. Detalle del error: {e}")
             resultado = []
