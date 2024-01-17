@@ -4,7 +4,7 @@ import urllib3
 import json
 import folium
 import base64
-from database.connect import ConnectBucket, ConnectDataBase, get_timestamp_from_date, get_timestamp_format, LocationsRepository
+from database.connect import PrediccionesFotoRepository, ConnectBucket, ConnectDataBase, get_timestamp_from_date, get_timestamp_format, LocationsRepository
 from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import pandas as pd
 from datetime import datetime
