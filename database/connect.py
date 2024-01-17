@@ -31,9 +31,9 @@ class ConnectDynamoDB():
         try:
             table_name = "ubicaciones_trampas"
             table = dynamodb.Table(table_name)
-            #print(table.scan())
+            print(table.scan())
             print(type(table))
-            table.get_item(
+            response = table.get_item(
                 Key={
                     'device_location': 'biblioteca_froilan'
                 }
