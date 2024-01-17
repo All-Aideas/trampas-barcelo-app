@@ -12,15 +12,16 @@ from datetime import datetime
 
 class DeviceLocationService():
 
-    locations_repository = LocationsRepository()
+    def __init__(self):
+        self.repository = LocationsRepository()
 
     def all_data(self):
-        data = locations_repository.all_data()
+        data = self.repository.all_data()
         resultado = {item['device_location']: item for item in data}
         return resultado
 
     def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
-        locations_repository.add_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
+        self.repository.add_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
 
 
 connectdb = ConnectDataBase()
