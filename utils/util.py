@@ -172,7 +172,7 @@ def predict_casos(nombre_imagen, encoded_string):
         return 0, 0, 0, None, None, None
 
 
-def get_casos_por_centro(mapa, fecha=None):
+def get_casos_por_centro(mapa, fecha=None, locations=[]):
     """
     Descripción:
     Mostrar la suma de cantidades de aedes, mosquitos y moscas por cada ubicación en un día específico.
@@ -187,8 +187,7 @@ def get_casos_por_centro(mapa, fecha=None):
         - None.
     """
     #centros_prevencion = connectdb.get_lista_centros()
-    devicelocationservice = DeviceLocationService()
-    centros_prevencion = devicelocationservice.all_data()
+    centros_prevencion = locations
     
     df_resumenes_diario = connectdb.get_datos_resumen_diario(fecha, centros=centros_prevencion)
     # print(df_resumenes_diario)
@@ -310,7 +309,7 @@ def contabilizar_resumen_diario(fecha, device_location):
     connectdb.insert_resumen_diario(fecha, device_location)
 
 
-def marcador_casos(fecha=None):
+def marcador_casos(fecha=None, locations=[]):
     """ Mostrar los centros y cantidad de casos detectados.
     Los marcadores son almacenados en un HTML.
     """
@@ -319,18 +318,16 @@ def marcador_casos(fecha=None):
         zoom_start=13,
     )
     
-    get_casos_por_centro(mapa, fecha)
+    get_casos_por_centro(mapa, fecha, locations=locations)
     mapa.save('templates/mapa.html')
 
 
-def lista_casos(fecha_formato=None, centro=None):
+def lista_casos(fecha_formato=None, centro=None, locations=[]):
     """ Mostrar detalle de los casos.
     """
-    devicelocationservice = DeviceLocationService()
-    locations = devicelocationservice.all_data()
     
     if fecha_formato is not None:
-        marcador_casos(fecha_formato)
+        marcador_casos(fecha=fecha_formato, locations=locations)
 
     df_resumen_diario = connectdb.get_datos_resumen_diario(centros=locations)
 
