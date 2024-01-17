@@ -4,12 +4,35 @@ import urllib3
 import json
 import folium
 import base64
-from database.connect import ConnectDataBase, get_timestamp_from_date, get_timestamp_format, ConnectDynamoDB
-from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, AWS_BUCKET_RAW
+from database.connect import ConnectBucket, ConnectDataBase, get_timestamp_from_date, get_timestamp_format, LocationsRepository
+from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import pandas as pd
 from datetime import datetime
 
+
+class DeviceLocationService():
+
+    locations_repository = LocationsRepository()
+
+    def all_data(self):
+        data = locations_repository.all_data()
+        resultado = {item['device_location']: item for item in data}
+        return resultado
+
+    def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
+        locations_repository.add_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
+
+
 connectdb = ConnectDataBase()
+conncets3 = ConnectBucket()
+prediccionesfoto_repository = PrediccionesFotoRepository()
+
+class PhotosService():
+    
+    def get_image_base64(self, object_key):
+        return conncets3.get_image_base64(object_key=object_key)
+
+
 
 def predict_objects_from_s3(reprocessing:bool=False):
     """
@@ -33,8 +56,7 @@ def predict_objects_from_s3(reprocessing:bool=False):
         for location in lista_centros:
             prefix_bucket = f"{AWS_BUCKET_RAW}/{location}"
 
-            paginator = s3.get_paginator('list_objects_v2')
-            pages = paginator.paginate(Bucket=BUCKET_NAME, Prefix=prefix_bucket, PaginationConfig={'PageSize': 1000})
+            pages = conncets3.get_objects(prefix_bucket=prefix_bucket)
         
             for page in pages:
                 archivos_jpg.extend([objeto['Key'] for objeto in page.get('Contents', []) if objeto['Key'].lower().endswith('.jpg')])
@@ -76,16 +98,6 @@ def get_valid_file(full_path:str):
         return None
 
 
-def get_image_base64(object_key):
-    try:
-        image_data = s3.get_object(Bucket=BUCKET_NAME, Key=object_key)['Body'].read()
-        image_base64 = base64.b64encode(image_data).decode('utf-8')
-        return image_base64
-    except Exception as e:
-        print(f"Error al recuperar imagen base64 de {object_key}: {e}")
-        return ""
-
-
 def invoke_api(url, encoded_string):
     headers = {'Content-Type': 'application/json'}
     cadena = f"data:image/jpeg;base64,{encoded_string}"
@@ -113,17 +125,12 @@ def upload_imagen_s3(base64_str, full_path):
         
         image_data = base64.decodebytes(bytes(base64_str, "utf-8"))
 
-        s3.put_object(Body=image_data, Bucket=BUCKET_NAME, Key=root_path_bucket)
-        print(f"La imagen se ha subido exitosamente a AWS S3 {root_path_bucket}")
+        conncets3.upload(image_data=image_data, root_path_bucket=root_path_bucket)
         
         return root_path_bucket
     except Exception as e:
         print(f"Ocurrió un error en la carga de la imagen procesada por YOLO en el bucket. Detalle del error: {e}")
         return None
-
-
-def get_url_imagen(ruta_imagen_bucket):
-    return "%s/%s/%s" % (s3.meta.endpoint_url, BUCKET_NAME, ruta_imagen_bucket)
 
 
 def predict_casos(nombre_imagen, encoded_string):
@@ -180,7 +187,7 @@ def get_casos_por_centro(mapa, fecha=None):
     """
     #centros_prevencion = connectdb.get_lista_centros()
     devicelocationservice = DeviceLocationService()
-    centros_prevencion = devicelocationservice.get_locations()
+    centros_prevencion = devicelocationservice.all_data()
     
     df_resumenes_diario = connectdb.get_datos_resumen_diario(fecha, centros=centros_prevencion)
     # print(df_resumenes_diario)
@@ -226,7 +233,7 @@ def get_casos_por_centro(mapa, fecha=None):
             url_ultima_foto = row['ultima_foto'] # Visualizar foto en HTML
             
             if url_ultima_foto:
-                image_base64 = get_image_base64(url_ultima_foto)
+                image_base64 = conncets3.get_image_base64(url_ultima_foto)
             texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='data:image/jpeg;base64,{image_base64}' width='100%' /></div>"
 
             texto_resumen_no_imagen = f"<div>No hay fotos del día {ultima_fecha_procesada}.</div>"
@@ -272,7 +279,7 @@ def get_casos_por_centro_from_s3(full_path_file_download:list):
         fechas_fotos_device_locations = set() # Lista de las fechas de las fotos que fueron procesadas correctamente.
 
         for full_path_bucket in full_path_file_download:
-            image_base64 = get_image_base64(full_path_bucket)
+            image_base64 = conncets3.get_image_base64(full_path_bucket)
             aedes, mosquitos, moscas, path_foto_yolo, foto_fecha, foto_datetime = predict_casos(full_path_bucket, image_base64)
 
             partes_ruta = os.path.normpath(full_path_bucket).split(os.path.sep)
@@ -285,12 +292,13 @@ def get_casos_por_centro_from_s3(full_path_file_download:list):
 
                 path_foto_raw = full_path_bucket
                 
-                url_imagen_yolov5 = get_url_imagen(path_foto_yolo)
+                url_imagen_yolov5 = conncets3.get_url_imagen(path_foto_yolo)
                 
-                url_imagen_foto_original = get_url_imagen(path_foto_yolo.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
+                url_imagen_foto_original = conncets3.get_url_imagen(path_foto_yolo.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
                 
-                datos_json = connectdb.campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime)
-                connectdb.insert_dato_prediccion(device_location, datos_json)
+                #datos_json = connectdb.campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime)
+                #connectdb.insert_dato_prediccion(device_location, datos_json)
+                prediccionesfoto_repository.add_prediction(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime)
         return fechas_fotos_device_locations
     except Exception as e:
         print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
@@ -318,7 +326,7 @@ def lista_casos(fecha_formato=None, centro=None):
     """ Mostrar detalle de los casos.
     """
     devicelocationservice = DeviceLocationService()
-    locations = devicelocationservice.get_locations()
+    locations = devicelocationservice.all_data()
     
     if fecha_formato is not None:
         marcador_casos(fecha_formato)
@@ -348,18 +356,3 @@ def is_valid_format(nombre_archivo):
     except Exception as e:
         print(f"Error durante la validación del formato del archivo. {e}")
         return False, None
-
-
-class DeviceLocationService():
-
-    dyn_locations = ConnectDynamoDB("ubicaciones_trampas")
-
-    def get_locations(self):
-        data = dyn_locations.get_locations()
-        resultado = {item['device_location']: item for item in data}
-        return resultado
-
-    def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
-        #connectdb.insert_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
-        dyn_locations.add_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
-

@@ -5,7 +5,7 @@ import folium
 from flask import Flask, render_template, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.date_format import get_datetime
-from utils.util import DeviceLocationService, predict_objects_from_s3, marcador_casos, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario, get_image_base64
+from utils.util import PhotosService, DeviceLocationService, predict_objects_from_s3, marcador_casos, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario
 from utils.config import SCHEDULER_HORAS, SCHEDULER_MINUTOS
 
 file_env = open(".env", "r")
@@ -114,7 +114,9 @@ def detalle_casos():
 @app.route('/imagen')
 def mostrar_image():
     object_key = request.args.get("key")
-    return get_image_base64(object_key)
+    photos_service = PhotosService()
+    return photos_service.get_image_base64(object_key=object_key)
+    #return get_image_base64(object_key)
 
 
 @app.route('/locations', methods=['POST'])
