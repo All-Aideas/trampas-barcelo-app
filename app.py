@@ -85,8 +85,11 @@ def obtener_resumen_diario():
 def index():
     """ Página principal de la aplicación.
     """
-    marcador_casos()
-    json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(None, None)
+    devicelocationservice = DeviceLocationService()
+    locations = devicelocationservice.all_data()
+
+    marcador_casos(locations=locations)
+    json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=None, centro=None, locations=locations)
     return render_template('index.html', 
             resumenes_diario_datos=json_datos_resumen_diario,
             resumenes_diario_detalle=json_datos_resumen_diario_detalle)
@@ -104,8 +107,12 @@ def detalle_casos():
     fecha_formato = request.args.get("fecha_formato")
     centro = request.args.get("centro")
     print(f"Fecha: {fecha_formato}. Centro: {centro}")
-    json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato, centro)
-    marcador_casos(fecha=fecha_formato)
+    
+    devicelocationservice = DeviceLocationService()
+    locations = devicelocationservice.all_data()
+    
+    json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=fecha_formato, centro=centro, locations=locations)    
+    marcador_casos(fecha=fecha_formato, locations=locations)
     return render_template('detalle-casos.html', 
             resumenes_diario_datos=json_datos_resumen_diario,
             resumenes_diario_detalle=json_datos_resumen_diario_detalle)
