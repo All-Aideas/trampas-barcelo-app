@@ -348,7 +348,7 @@ class ConnectDataBase():
             #     resultado = db.child(key_find).get().val()
             #     resumenes_diarios = [item for sublist in [resultado[col].values() for col in resultado.keys()] for item in sublist]
 
-            if resultado is not None:
+            if resultado:
                 df_resumen_diario = pd.DataFrame(resultado)#df_resumen_diario = pd.DataFrame(resumenes_diarios)
                 df_resumen_diario = df_resumen_diario.sort_values(by=["foto_fecha", "centro"]).sort_values(by=["foto_fecha"], ascending=False)
                 if fecha_filtro:
