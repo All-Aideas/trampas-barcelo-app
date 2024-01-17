@@ -63,6 +63,7 @@ class LocationsRepository():
         try:
             response = self.table.scan()
             resultado = response.get('Items', [])
+            print("Ubicaciones de las trampas")
             print(resultado)
         except Exception as e:
             print(f"Ocurrió un error durante la consulta de la lista de edificios en la base de datos. Detalle del error: {e}")

@@ -18,6 +18,8 @@ class DeviceLocationService():
     def all_data(self):
         data = self.repository.all_data()
         resultado = {item['device_location']: item for item in data}
+        print("Ubicaciones de las trampas por device_location")
+        print(resultado)
         return resultado
 
     def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
