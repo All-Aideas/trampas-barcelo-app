@@ -115,9 +115,13 @@ def detalle_casos():
     
     # json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=fecha_formato, centro=centro, locations=locations)    
     # marcador_casos(fecha=fecha_formato, locations=locations)
-    # return render_template('detalle-casos.html', 
-    #         resumenes_diario_datos=json_datos_resumen_diario,
-    #         resumenes_diario_detalle=json_datos_resumen_diario_detalle)
+
+    dashboard = DashboardService()
+    json_datos_resumen_diario, json_datos_resumen_diario_detalle = dashboard.get_resumenes(foto_fecha=fecha_formato, device_location=centro)
+    
+    return render_template('detalle-casos.html', 
+            resumenes_diario_datos=json_datos_resumen_diario,
+            resumenes_diario_detalle=json_datos_resumen_diario_detalle)
 
 
 @app.route('/imagen')

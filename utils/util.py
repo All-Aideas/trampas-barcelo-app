@@ -4,7 +4,7 @@ import urllib3
 import json
 import folium
 import base64
-from database.connect import PrediccionesFotoRepository, ConnectBucket, ConnectDataBase, get_timestamp_from_date, get_timestamp_format, LocationsRepository
+from database.connect import ResumenesDiarioRepository, PrediccionesFotoRepository, ConnectBucket, ConnectDataBase, get_timestamp_from_date, get_timestamp_format, LocationsRepository
 from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import pandas as pd
 from datetime import datetime
@@ -366,12 +366,12 @@ def is_valid_format(nombre_archivo):
 
 
 class DashboardService():
-    def get_resumenes(self, foto_fecha, device_location):
+    def get_resumenes(self, foto_fecha=None, device_location=None):
         devicelocationservice = DeviceLocationService()
         df_locations = devicelocationservice.all_data()
 
         resumenesdiario_repository = ResumenesDiarioRepository()
-        df_resumenesdiario = resumenesdiario_repository.all_data(foto_fecha=foto_fecha, device_location=device_location)
+        df_resumenesdiario = resumenesdiario_repository.data(foto_fecha=foto_fecha, device_location=device_location)
 
         df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='inner') \
                      .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
@@ -423,6 +423,14 @@ class DashboardService():
                         aedes_total=aedes_total, mosquitos_total=mosquitos_total, moscas_total=moscas_total)
 
         mapa.save('templates/mapa.html')
+
+        json_datos_resumen_diario = json.loads(df_merged.to_json(orient="records"))
+    
+        json_datos_resumen_diario_detalle = []
+        if foto_fecha is not None and device_location is not None:
+            df_datos_prediccion = connectdb.get_datos_prediccion(fecha=foto_fecha, centro=device_location)
+            json_datos_resumen_diario_detalle = json.loads(df_datos_prediccion.to_json(orient="records"))
+        return json_datos_resumen_diario, json_datos_resumen_diario_detalle
     
     def add_marker(self, row, mapa):
         """
@@ -433,3 +441,6 @@ class DashboardService():
         centro_lat_lng = [centro_lat, centro_lng]
         centro_nombre = row["nombre_centro"]
         set_market(mapa, lat_lng=centro_lat_lng, name=centro_nombre)
+
+class PredictPhotosService():
+    pass

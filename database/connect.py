@@ -166,7 +166,7 @@ class ResumenesDiarioRepository():
             print(f"Ocurrió un error durante la consulta a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
             data = []
         finally:
-            columns = ["cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos", "centro", "foto_fecha", "path_foto_yolo", "ultima_foto"]
+            columns = ["cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos", "device_location", "foto_fecha", "path_foto_yolo", "ultima_foto"]
             return pd.DataFrame(data, columns=columns)
 
     def get(self, device_location, foto_fecha):
@@ -346,7 +346,7 @@ class ConnectDataBase():
         df_resumen_diario = pd.DataFrame()
         try:
             resumenesdiario_repository = ResumenesDiarioRepository()
-            resultado = resumenesdiario_repository.all_data()
+            resultado = resumenesdiario_repository.data()
             
             # key_find = f"resumenes_diario"
             # if fecha_filtro:
