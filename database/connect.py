@@ -5,7 +5,8 @@ import pandas as pd
 import json
 from decimal import Decimal
 from utils.date_format import get_datetime_from_str, get_timestamp_from_datetime, get_str_format_from_date_str, get_str_date_tz_from_timestamp
-from utils.config import s3, db, dynamodb, BUCKET_NAME
+from utils.config import s3, db, dynamodb, dynamodb_client, BUCKET_NAME
+from boto3.dynamodb.conditions import Attr
 
 
 def get_timestamp():
@@ -63,8 +64,6 @@ class LocationsRepository():
         try:
             response = self.table.scan()
             data = response.get('Items', [])
-            print("Ubicaciones de las trampas")
-            print(data)
         except Exception as e:
             print(f"Ocurrió un error durante la consulta de la lista de edificios en la base de datos. Detalle del error: {e}")
             data = []
@@ -94,18 +93,31 @@ class LocationsRepository():
 class PrediccionesFotoRepository():
     
     def __init__(self):
-        self.dyn_resource = dynamodb
-        self.table = self.dyn_resource.Table("predicciones_foto")
+        self.dyn_resource = dynamodb_client
+        self.table_name = "predicciones_foto"
     
-    def all_data(self):
+    def all_data(self, items:list):
         """Obtener los datos de los edificios que tienen trampas.
         """
         try:
-            response = self.table.scan()
-            resultado = response.get('Items', [])
+            resultado = set()
+
+            # Dividir la lista en bloques de hasta 100 elementos (límite de batch_get_item)
+            for i in range(0, len(items), 100):
+                items_batch = items[i:i+100]
+                keys = [{'device_location': {'S': location}, 'device_id_timestamp': {'S': device_id_timestamp}} for location, device_id_timestamp, _ in items_batch]
+                response = self.dyn_resource.batch_get_item(
+                    RequestItems={
+                        self.table_name: {
+                            'Keys': keys,
+                            'ProjectionExpression': 'device_location, device_id_timestamp, path_foto_raw'
+                        }
+                    }
+                )
+                resultado.update((item['device_location']['S'], item['device_id_timestamp']['S'], item['path_foto_raw']['S']) for item in response.get('Responses', {}).get(self.table_name, []))
         except Exception as e:
             print(f"Ocurrió un error durante la consulta de la tabla predicciones_foto en la base de datos. Detalle del error: {e}")
-            resultado = []
+            resultado = set()
         finally:
             return resultado
 

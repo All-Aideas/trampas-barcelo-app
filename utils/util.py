@@ -20,8 +20,8 @@ class DeviceLocationService():
         # self.data = self.repository.all_data()
         resultado = self.repository.all_data()
         #resultado = {item['device_location']: item for item in self.data}
-        print("Ubicaciones de las trampas por device_location")
-        print(resultado)
+        #print("Ubicaciones de las trampas por device_location")
+        #print(resultado)
         return resultado
 
     def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
@@ -59,68 +59,25 @@ class PhotosService():
             return None 
 
 
-def predict_objects_from_s3(reprocessing:bool=False):
-    """
-    Descripción:
-    Crear el directorio temporal donde estarán las fotos descargadas del bucket.
-    Descarga solamente los archivos con extensión JPG y cuya nomenclatura sea igual al de la función is_valid_format().
-    Filtra las fotos que ya fueron procesadas por la IA anteriormente. Esto evita reprocesamiento.
-    
-    Input:
-        - reprocessing:bool Si es True, entonces se procesa todas las fotos del bucket. 
-                            Si es False, entonces se procesa las nuevas fotos del bucket.
-    Output:
-        - Lista: Ubicación de cada archivo descargado.
-    """
-    try:
-        archivos_jpg = []
-        
-        lista_centros = connectdb.get_lista_centros()
-        lista_centros = list(lista_centros.keys())
-        
-        for location in lista_centros:
-            prefix_bucket = f"{AWS_BUCKET_RAW}/{location}"
-
-            pages = conncets3.get_objects(prefix_bucket=prefix_bucket)
-        
-            for page in pages:
-                archivos_jpg.extend([objeto['Key'] for objeto in page.get('Contents', []) if objeto['Key'].lower().endswith('.jpg')])
-
-        #print(f"Archivos JPG que se encuentran en el bucket: {archivos_jpg}")
-        
-        path_files_valid = [file for file in [get_valid_file(archivo_valido) for archivo_valido in archivos_jpg] if file]
-        print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
-        
-        if not reprocessing:
-            df_fotos_procesadas = connectdb.get_datos_prediccion()
-            if not df_fotos_procesadas.empty:
-                df_fotos_procesadas = df_fotos_procesadas[['path_foto_raw']]
-                path_files_will_be_processed = [elemento for elemento in path_files_valid if elemento not in df_fotos_procesadas['path_foto_raw'].unique()]
-                print(f"Archivos JPG que serán procesados {path_files_will_be_processed}")
-                path_files_valid = path_files_will_be_processed
-        
-        if path_files_valid:
-            return path_files_valid
-        return []
-    except Exception as e:
-        print(f"Ocurrió un error durante la descarga de objetos del bucket. Detalle del error: {e}")
-        return None
-
-
 def get_valid_file(full_path:str):
+    """
+    Ejemplo:
+    full_path = raw/modernizacion/mosq-trampa_1/2022-11-29T11-11-11.jpg
+    """
     try:
         partes_ruta = os.path.normpath(full_path).split(os.path.sep)
         device_location = partes_ruta[1]
+        device_id = partes_ruta[2]
         nombre_archivo = partes_ruta[-1]
         flag, _ = is_valid_format(nombre_archivo)
         
         if flag:
             # print(f"Ubicación de archivo en el bucket: {full_path}")
-            return full_path
-        return None
+            return device_location, f"{device_id}-{nombre_archivo}", full_path
+        return None, None, None
     except Exception as e:
         print(f"Ocurrió un error durante la validación del objeto {full_path} del bucket. Detalle del error: {e}")
-        return None
+        return None, None, None
 
 
 def invoke_api(url, encoded_string):
@@ -443,4 +400,52 @@ class DashboardService():
         set_market(mapa, lat_lng=centro_lat_lng, name=centro_nombre)
 
 class PredictPhotosService():
-    pass
+
+    def get_new_objects(self, reprocessing:bool=False):
+        """
+        Descripción:
+        Recupera la lista de edificios registrados en base de datos.
+        Crea una lista de objetos que se encuentran en cada carpeta del bucket.
+        Filtra solamente los archivos con extensión JPG y cuya nomenclatura sea igual al de la función is_valid_format().
+        Filtra las fotos que ya fueron procesadas anteriormente por la IA. Esto evita reprocesamiento.
+        
+        Input:
+            - reprocessing:bool Si es True, entonces se procesa todas las fotos del bucket. 
+                                Si es False, entonces se procesa las nuevas fotos del bucket.
+        Output:
+            - Lista:List[str] Ubicación de cada archivo descargado.
+        """
+        try:
+            archivos_jpg = []
+            
+            devicelocationservice = DeviceLocationService()
+            df_locations = devicelocationservice.all_data()
+            locations = df_locations["device_location"].tolist()
+            
+            for location in locations:
+                prefix_bucket = f"{AWS_BUCKET_RAW}/{location}"
+
+                pages = conncets3.get_objects(prefix_bucket=prefix_bucket)
+            
+                for page in pages:
+                    archivos_jpg.extend([objeto['Key'] for objeto in page.get('Contents', []) if objeto['Key'].lower().endswith('.jpg')])
+
+            #print(f"Archivos JPG que se encuentran en el bucket: {archivos_jpg}")
+            
+            path_files_valid = [file for file in [get_valid_file(archivo_valido) for archivo_valido in archivos_jpg] if file]
+            print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
+            
+            if not reprocessing:
+                predicciones_result = prediccionesfoto_repository.all_data(items=path_files_valid)
+                new_elements = set(path_files_valid) - predicciones_result
+
+                #path_files_valid = list(new_elements)
+                path_files_valid = [path_raw for _, _, path_raw in new_elements]
+                print(path_files_valid)
+            
+            if path_files_valid:
+                return path_files_valid
+            return []
+        except Exception as e:
+            print(f"Ocurrió un error durante la descarga de objetos del bucket. Detalle del error: {e}")
+            return None
