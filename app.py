@@ -5,7 +5,7 @@ import folium
 from flask import Flask, render_template, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.date_format import get_datetime
-from utils.util import PhotosService, DeviceLocationService, predict_objects_from_s3, marcador_casos, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario
+from utils.util import DashboardService, PhotosService, DeviceLocationService, predict_objects_from_s3, marcador_casos, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario
 from utils.config import SCHEDULER_HORAS, SCHEDULER_MINUTOS
 
 file_env = open(".env", "r")
@@ -85,14 +85,13 @@ def obtener_resumen_diario():
 def index():
     """ Página principal de la aplicación.
     """
-    devicelocationservice = DeviceLocationService()
-    locations = devicelocationservice.all_data()
-    df = devicelocationservice.to_dataframe()
-    print(df)
-    print(df.columns)
-
-    marcador_casos(locations=locations)
-    json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=None, centro=None, locations=locations)
+    # devicelocationservice = DeviceLocationService()
+    # locations = devicelocationservice.all_data()
+    
+    # marcador_casos(locations=locations)
+    # json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=None, centro=None, locations=locations)
+    dashboard = DashboardService()
+    json_datos_resumen_diario, json_datos_resumen_diario_detalle = dashboard.get_resumenes(foto_fecha=None, device_location=None)
     return render_template('index.html', 
             resumenes_diario_datos=json_datos_resumen_diario,
             resumenes_diario_detalle=json_datos_resumen_diario_detalle)
@@ -111,14 +110,14 @@ def detalle_casos():
     centro = request.args.get("centro")
     print(f"Fecha: {fecha_formato}. Centro: {centro}")
     
-    devicelocationservice = DeviceLocationService()
-    locations = devicelocationservice.all_data()
+    # devicelocationservice = DeviceLocationService()
+    # locations = devicelocationservice.all_data()
     
-    json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=fecha_formato, centro=centro, locations=locations)    
-    marcador_casos(fecha=fecha_formato, locations=locations)
-    return render_template('detalle-casos.html', 
-            resumenes_diario_datos=json_datos_resumen_diario,
-            resumenes_diario_detalle=json_datos_resumen_diario_detalle)
+    # json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=fecha_formato, centro=centro, locations=locations)    
+    # marcador_casos(fecha=fecha_formato, locations=locations)
+    # return render_template('detalle-casos.html', 
+    #         resumenes_diario_datos=json_datos_resumen_diario,
+    #         resumenes_diario_detalle=json_datos_resumen_diario_detalle)
 
 
 @app.route('/imagen')
@@ -126,7 +125,6 @@ def mostrar_image():
     object_key = request.args.get("key")
     photos_service = PhotosService()
     return photos_service.get_image_base64(object_key=object_key)
-    #return get_image_base64(object_key)
 
 
 @app.route('/locations', methods=['POST'])

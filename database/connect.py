@@ -57,19 +57,20 @@ class LocationsRepository():
         self.dyn_resource = dynamodb
         self.table = self.dyn_resource.Table("ubicaciones_trampas")
     
-    def all_data(self):
+    def all_data(self) -> pd.DataFrame:
         """Obtener los datos de los edificios que tienen trampas.
         """
         try:
             response = self.table.scan()
-            resultado = response.get('Items', [])
+            data = response.get('Items', [])
             print("Ubicaciones de las trampas")
-            print(resultado)
+            print(data)
         except Exception as e:
             print(f"Ocurrió un error durante la consulta de la lista de edificios en la base de datos. Detalle del error: {e}")
-            resultado = []
+            data = []
         finally:
-            return resultado
+            columns = ["device_location", "latitud", "localidad", "longitud", "nombre_centro"]
+            return pd.DataFrame(data, columns=columns)
 
     def add_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
         """ Registrar ubicaciones de las cámaras en base de datos.
@@ -139,13 +140,17 @@ class ResumenesDiarioRepository():
         self.dyn_resource = dynamodb
         self.table = self.dyn_resource.Table("resumenes_diario")
     
-    def all_data(self):
+    def data(self, foto_fecha=None, device_location=None) -> pd.DataFrame:
         try:
-            response = self.table.scan()
+            if foto_fecha is None and device_location is None:
+                response = self.table.scan()
+            else:
+                response = self.table.query(
+                    KeyConditionExpression=Key('device_location').eq(device_location) & Key('foto_fecha').eq(foto_fecha)
+                )
             data = response.get('Items', [])
             print("resumenes_diario")
             print(data)
-            return data
 
             # key_find = f"resumenes_diario"
             # if fecha_filtro:
@@ -159,7 +164,11 @@ class ResumenesDiarioRepository():
             #     resumenes_diarios = [item for sublist in [resultado[col].values() for col in resultado.keys()] for item in sublist]
         except Exception as err:
             print(f"Ocurrió un error durante la consulta a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
-    
+            data = []
+        finally:
+            columns = ["cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos", "centro", "foto_fecha", "path_foto_yolo", "ultima_foto"]
+            return pd.DataFrame(data, columns=columns)
+
     def get(self, device_location, foto_fecha):
         try:
             response = self.table.get_item(

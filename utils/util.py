@@ -16,16 +16,10 @@ class DeviceLocationService():
         self.repository = LocationsRepository()
         self.data = None
 
-    def to_dataframe(self):
-        # return self.repository.all_data()
-        #df = pd.DataFrame.from_dict(self.data, orient='index',
-        #                        columns=['nombre_centro', 'latitud', 'longitud', 'direccion', 'localidad']).reset_index()
-        df = pd.DataFrame(self.data)
-        return df
-
     def all_data(self):
-        self.data = self.repository.all_data()
-        resultado = {item['device_location']: item for item in self.data}
+        # self.data = self.repository.all_data()
+        resultado = self.repository.all_data()
+        #resultado = {item['device_location']: item for item in self.data}
         print("Ubicaciones de las trampas por device_location")
         print(resultado)
         return resultado
@@ -42,7 +36,27 @@ class PhotosService():
     
     def get_image_base64(self, object_key):
         return conncets3.get_image_base64(object_key=object_key)
+    
+    def upload_imagen_s3(base64_str, full_path):
+        try:
+            print(f"File name {full_path} to upload to S3.")
 
+            ruta_normalizada = os.path.normpath(full_path)
+            partes_ruta = ruta_normalizada.split(os.path.sep)
+            root_path = ["yolov5"] + partes_ruta[1:-1] # Carpeta donde se encontrarán los archivos procesados.
+            full_path_imagen_tmp = root_path + [partes_ruta[-1]]
+            root_path_bucket = ["yolov5"] + partes_ruta[1:]
+            root_path_bucket = '/'.join(root_path_bucket)
+            full_path_imagen_tmp = os.path.join(*full_path_imagen_tmp)
+            
+            image_data = base64.decodebytes(bytes(base64_str, "utf-8"))
+
+            conncets3.upload(image_data=image_data, root_path_bucket=root_path_bucket)
+            
+            return root_path_bucket
+        except Exception as e:
+            print(f"Ocurrió un error en la carga de la imagen procesada por YOLO en el bucket. Detalle del error: {e}")
+            return None 
 
 
 def predict_objects_from_s3(reprocessing:bool=False):
@@ -122,32 +136,12 @@ def invoke_api(url, encoded_string):
     return response
 
 
-def upload_imagen_s3(base64_str, full_path):
-    try:
-        print(f"File name {full_path} to upload to S3.")
-
-        ruta_normalizada = os.path.normpath(full_path)
-        partes_ruta = ruta_normalizada.split(os.path.sep)
-        root_path = ["yolov5"] + partes_ruta[1:-1] # Carpeta donde se encontrarán los archivos procesados.
-        full_path_imagen_tmp = root_path + [partes_ruta[-1]]
-        root_path_bucket = ["yolov5"] + partes_ruta[1:]
-        root_path_bucket = '/'.join(root_path_bucket)
-        full_path_imagen_tmp = os.path.join(*full_path_imagen_tmp)
-        
-        image_data = base64.decodebytes(bytes(base64_str, "utf-8"))
-
-        conncets3.upload(image_data=image_data, root_path_bucket=root_path_bucket)
-        
-        return root_path_bucket
-    except Exception as e:
-        print(f"Ocurrió un error en la carga de la imagen procesada por YOLO en el bucket. Detalle del error: {e}")
-        return None
-
-
 def predict_casos(nombre_imagen, encoded_string):
     """ Obtiene la cantidad de aedes, mosquitos y moscas detectadas por la inteligencia artificial y almacena la imagen.
     """
     try:
+        photos_service = PhotosService()
+        
         response = invoke_api(API_URL_PREDICT, encoded_string)
         print('Resultado de API {} para la foto {}'.format(response.status, nombre_imagen))
         response_data = json.loads(response.data.decode('utf-8'))["data"]
@@ -158,7 +152,7 @@ def predict_casos(nombre_imagen, encoded_string):
         
         response_data_imagen_yolo = response_data[0]
         response_data_imagen_yolo = response_data_imagen_yolo.split("data:image/png;base64,")[1]
-        path_foto_yolo = upload_imagen_s3(response_data_imagen_yolo, nombre_imagen.replace(".jpg","_yolov5.jpg"))
+        path_foto_yolo = photos_service.upload_imagen_s3(response_data_imagen_yolo, nombre_imagen.replace(".jpg","_yolov5.jpg"))
         
         if not path_foto_yolo:
             return 0, 0, 0, None, None, None
@@ -193,6 +187,7 @@ def get_casos_por_centro(mapa, fecha=None, locations=[]):
     Input:
         - mapa: Objeto mapa.
         - fecha: Formato YYYY-MM-DD.
+        - locations:list Lista de diccionarios.
     Output:
         - None.
     """
@@ -201,13 +196,18 @@ def get_casos_por_centro(mapa, fecha=None, locations=[]):
     df_resumenes_diario = connectdb.get_datos_resumen_diario(fecha, centros=centros_prevencion)
     # print(df_resumenes_diario)
     if df_resumenes_diario.empty:
-        for centro in centros_prevencion.keys():
-            centro_lat = centros_prevencion[centro]["latitud"]#centros_prevencion[centro][1]
-            centro_lng = centros_prevencion[centro]["longitud"]#centros_prevencion[centro][2]
+        # for centro in centros_prevencion.keys():
+        #     centro_lat = centros_prevencion[centro]["latitud"]#centros_prevencion[centro][1]
+        #     centro_lng = centros_prevencion[centro]["longitud"]#centros_prevencion[centro][2]
+        #     centro_lat_lng = [centro_lat, centro_lng]
+        #     centro_nombre = centros_prevencion[centro]["nombre_centro"]#centros_prevencion[centro][0]
+        #     set_market(mapa, lat_lng=centro_lat_lng, 
+        #             name=centro_nombre)
+        for data_location in locations:
+            centro_lat, centro_lng = data_location.get("latitud", 0), data_location.get("longitud", 0)
             centro_lat_lng = [centro_lat, centro_lng]
-            centro_nombre = centros_prevencion[centro]["nombre_centro"]#centros_prevencion[centro][0]
-            set_market(mapa, lat_lng=centro_lat_lng, 
-                    name=centro_nombre)
+            centro_nombre = data_location.get("nombre_centro", "")
+            set_market(mapa, lat_lng=centro_lat_lng, name=centro_nombre)
     else:
         # Obtener última fecha procesada
         ultima_fecha_procesada = df_resumenes_diario['foto_fecha'].iloc[0] if fecha is None else fecha
@@ -363,3 +363,73 @@ def is_valid_format(nombre_archivo):
     except Exception as e:
         print(f"Error durante la validación del formato del archivo. {e}")
         return False, None
+
+
+class DashboardService():
+    def get_resumenes(self, foto_fecha, device_location):
+        devicelocationservice = DeviceLocationService()
+        df_locations = devicelocationservice.all_data()
+
+        resumenesdiario_repository = ResumenesDiarioRepository()
+        df_resumenesdiario = resumenesdiario_repository.all_data(foto_fecha=foto_fecha, device_location=device_location)
+
+        df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='inner') \
+                     .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
+
+        mapa = folium.Map(
+            location=[-34.5106, -58.4964],
+            zoom_start=13,
+        )
+
+        if df_merged.empty:
+            df_locations.apply(self.add_marker, axis=1, mapa=mapa)
+            #df_merged.apply(self.add_marker, axis=1, mapa=mapa)
+        else:
+            # Obtener última fecha procesada
+            ultima_fecha_procesada = df_merged['foto_fecha'].iloc[0] if fecha is None else fecha
+            df_resultado = df_merged[df_merged['foto_fecha'] == ultima_fecha_procesada]
+            
+            columnas_a_llenar_con_cero = ['cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas']
+            columnas_a_agrupar = ['centro', 'nombre_centro', 'latitud', 'longitud', 'foto_fecha', 'ultima_foto']
+            df_resultado = df_resultado[columnas_a_agrupar + columnas_a_llenar_con_cero]
+
+            default_values = {'foto_fecha': ultima_fecha_procesada, 'ultima_foto': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
+            df_resultado = df_resultado.fillna(default_values)
+            
+            resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
+            resultado_agrupado['lat_lng'] = resultado_agrupado.apply(lambda row: [row['latitud'], row['longitud']], axis=1)
+
+            for _, row in resultado_agrupado.iterrows():
+                centro_lat_lng = row['lat_lng']
+                centro_nombre = row['nombre_centro']
+                texto_resumen_imagen = ""
+                image_base64 = ""
+
+                url_ultima_foto = row['ultima_foto'] # Visualizar foto en HTML
+                
+                if url_ultima_foto:
+                    image_base64 = conncets3.get_image_base64(url_ultima_foto)
+                texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='data:image/jpeg;base64,{image_base64}' width='100%' /></div>"
+
+                texto_resumen_no_imagen = f"<div>No hay fotos del día {ultima_fecha_procesada}.</div>"
+                texto_resumen_imagen = texto_resumen_imagen if len(image_base64) > 0 else texto_resumen_no_imagen
+                mostrar_descripcion = True if len(image_base64) > 0 else False
+
+                aedes_total, mosquitos_total, moscas_total = int(row['cantidad_aedes']), int(row['cantidad_mosquitos']), int(row['cantidad_moscas'])
+                set_market(mapa, lat_lng=centro_lat_lng, 
+                        name=centro_nombre, 
+                        description=texto_resumen_imagen, 
+                        show_description=mostrar_descripcion,
+                        aedes_total=aedes_total, mosquitos_total=mosquitos_total, moscas_total=moscas_total)
+
+        mapa.save('templates/mapa.html')
+    
+    def add_marker(self, row, mapa):
+        """
+        Descripción:
+        Asignar los puntos de ubicación en el mapa.
+        """
+        centro_lat, centro_lng = row["latitud"], row["longitud"]
+        centro_lat_lng = [centro_lat, centro_lng]
+        centro_nombre = row["nombre_centro"]
+        set_market(mapa, lat_lng=centro_lat_lng, name=centro_nombre)
