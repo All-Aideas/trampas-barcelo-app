@@ -48,9 +48,7 @@
                 <tbody>
                     {% for resumen_diario in resumenes_diario_datos %}
                     <tr onclick="verDetalle('{{ resumen_diario.foto_fecha }}', 
-                                            '{{ resumen_diario.centro }}',
-                                            '{{ resumen_diario.foto_original }}',
-                                            '{{ resumen_diario.foto_yolov5 }}' )">
+                                            '{{ resumen_diario.centro }}' )">
                         <td class="ocultar">{{ timestamp_procesamiento }}</td>
                         <td>{{ resumen_diario.fecha_formato }}</td>
                         <td>{{ resumen_diario.centro_nombre }}</td>
@@ -89,7 +87,7 @@
                     {% for resumen_diario in resumenes_diario_detalle %}
                     <tr onclick="verImagenes('{{ resumen_diario.foto_datetime }}',
                                             '{{ resumen_diario.centro_nombre }}', 
-                                            '{{ resumen_diario.foto_yolov5 }}' )">
+                                            '{{ resumen_diario.path_foto_yolo }}' )">
                         <td>{{ resumen_diario.foto_datetime }}</td>
                         <td>{{ resumen_diario.centro_nombre }}</td>
                         <td>{{ resumen_diario.device_id }}</td>
@@ -130,14 +128,14 @@
         document.getElementById('mapa').src = valor;
     }
 
-    function verDetalle(fecha_formato, centro, url_imagen_original, url_imagen_yolov5){
+    function verDetalle(fecha_formato, centro){
         document.location.href = "detalle-casos?fecha_formato=" + fecha_formato + "&centro=" + centro;
     }
 
-    function verImagenes(fecha_formato, centro_nombre, url_imagen_yolov5){
-        // url_imagen_yolov5 : Imagen en base64
+    function verImagenes(fecha_formato, centro_nombre, path_foto_yolo){
+        // path_foto_yolo : Path de la imagen en el bucket
         // Realizar la solicitud HTTP
-        fetch("/imagen?key=" + encodeURIComponent(url_imagen_yolov5))
+        fetch("/imagen?key=" + encodeURIComponent(path_foto_yolo))
             .then(response => response.text())
             .then(base64String => {
                 // Asignar el resultado al atributo src de la imagen

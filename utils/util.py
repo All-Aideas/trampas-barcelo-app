@@ -79,12 +79,12 @@ def get_valid_file(full_path:str):
         return None, None, None
 
 
-def invoke_api(full_path_file):
+def invoke_api(image_size="640", nms_threshold=0.45, threshold=0.83, encoded_string=""):
     try:
-        encoded_string = conncets3.get_image_base64(full_path_file)
+        encoded_imagen, metadata = None, None
 
         cadena = f"data:image/jpeg;base64,{encoded_string}"
-        data = {"data": ["640", 0.45, 0.83, cadena]}
+        data = {"data": [image_size, nms_threshold, threshold, cadena]}
         body = json.dumps(data).encode('utf-8')
         http = urllib3.PoolManager()
         response = http.request("POST",
@@ -95,11 +95,9 @@ def invoke_api(full_path_file):
         if response.status == 200:
             # El primer elemento contiene la imagen.
             # El segundo elemento contiene la metadata.
-            encoded_imagen, metadata = json.loads(response.data.decode('utf-8'))["data"]
-            
+            encoded_imagen, _, metadata = json.loads(response.data.decode('utf-8'))["data"]
     except Exception as err:
         print(f"Error durante la invocación de la IA: {err}")
-        encoded_imagen, metadata = None, None
     finally:
         return encoded_imagen, metadata
 
@@ -110,38 +108,38 @@ def predict_casos(full_path_file):
     try:
         photos_service = PhotosService()
 
-        encoded_imagen, metadata = invoke_api(full_path_file)
+        encoded_string = conncets3.get_image_base64(full_path_file)
+        encoded_imagen, metadata = invoke_api(encoded_string=encoded_string)
 
-        print(type(metadata))
-        print(type(metadata["data"]))
+        print(f'Resultado de API para la foto {full_path_file}: {metadata_detail}')
         
-        response_metadata = metadata["data"]
-        print(f'Resultado de API {response.status} para la foto {full_path_file}: {response_metadata}')
-    
+        # Almacenar la foto procesada en el bucket
         response_data_imagen_yolo = encoded_imagen.split("data:image/png;base64,")[1]
-        to_full_path_bucket = full_path_file.replace(".jpg","_yolov5.jpg")
-        path_foto_yolo = photos_service.upload_imagen_s3(response_data_imagen_yolo, to_full_path_bucket)
+        renamed_full_path_bucket = full_path_file.replace(".jpg","_yolov5.jpg")
+        path_foto_yolo = photos_service.upload_imagen_s3(response_data_imagen_yolo, renamed_full_path_bucket)
         
         if not path_foto_yolo:
-            return 0, 0, 0, None, None, None
+            return 0, 0, 0, None
         
-        aedes = int(response_metadata[0][0])
-        mosquitos = int(response_metadata[1][0])
-        moscas = int(response_metadata[2][0])
+        # Recuperar la metadata
+        metadata_detail = metadata.get('detail', [])
+        aedes = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Aedes')
+        mosquitos = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosquito')
+        moscas = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosca')
         
-        ruta_normalizada = os.path.normpath(full_path_file)
-        partes_ruta = ruta_normalizada.split(os.path.sep)
-        nombre_archivo = partes_ruta[-1]
+        #ruta_normalizada = os.path.normpath(full_path_file)
+        #partes_ruta = ruta_normalizada.split(os.path.sep)
+        #nombre_archivo = partes_ruta[-1]
         
-        flag, timestamp = is_valid_format(nombre_archivo)
-        if flag:
-            foto_date = timestamp.strftime('%Y-%m-%d')
-            foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
-            return aedes, mosquitos, moscas, path_foto_yolo, foto_date, foto_datetime
-        return 0, 0, 0, None, None, None
+        #flag, timestamp = is_valid_format(nombre_archivo)
+        # if flag:
+        #     foto_date = timestamp.strftime('%Y-%m-%d')
+        #     foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        return aedes, mosquitos, moscas, path_foto_yolo
+        #return 0, 0, 0, None
     except Exception as e:
         print(f"Ocurrió un error en el proceso de invocar el API de YOLO. Detalle del error: {e}")
-        return 0, 0, 0, None, None, None
+        return 0, 0, 0, None
 
 
 def get_casos_por_centro(mapa, fecha=None, locations=[]):
@@ -245,40 +243,6 @@ def set_market(mapa, lat_lng:list, name:str, description:str="", show_descriptio
         tooltip=name,
         icon=icon_config,
     ).add_to(mapa)
-
-
-def get_casos_por_centro_from_s3(full_path_file_download:list):
-    """
-    Descripción:
-    Analizar cada una de las imágenes descargadas por la IA.
-    """
-    try:
-        fechas_fotos_device_locations = set() # Lista de las fechas de las fotos que fueron procesadas correctamente.
-
-        for full_path_bucket in full_path_file_download:
-            aedes, mosquitos, moscas, path_foto_yolo, foto_fecha, foto_datetime = predict_casos(full_path_bucket)
-
-            partes_ruta = os.path.normpath(full_path_bucket).split(os.path.sep)
-            
-            device_location = partes_ruta[1]  # Obtener el código desde la ruta
-            device_id = partes_ruta[2] # Obtener el código del dispositivo
-
-            if foto_fecha:
-                fechas_fotos_device_locations.add((foto_fecha, device_location))
-
-                path_foto_raw = full_path_bucket
-                
-                url_imagen_yolov5 = conncets3.get_url_imagen(path_foto_yolo)
-                
-                url_imagen_foto_original = conncets3.get_url_imagen(path_foto_yolo.replace("yolov5/", "raw/").replace("_yolov5.jpg", ".jpg"))
-                
-                #datos_json = connectdb.campos_json(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime)
-                #connectdb.insert_dato_prediccion(device_location, datos_json)
-                prediccionesfoto_repository.add_prediction(device_location, device_id, aedes, mosquitos, moscas, url_imagen_foto_original, url_imagen_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime)
-        return fechas_fotos_device_locations
-    except Exception as e:
-        print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
-        return fechas_fotos_device_locations
 
 
 def contabilizar_resumen_diario(fecha, device_location):
@@ -423,7 +387,8 @@ class PredictPhotosService():
             - reprocessing:bool Si es True, entonces se procesa todas las fotos del bucket. 
                                 Si es False, entonces se procesa las nuevas fotos del bucket.
         Output:
-            - Lista:List[str] Ubicación de cada archivo descargado.
+            - Lista:List[set] Cada elemento de la lista está compuesto por un set(str, str, str).
+                Elementos: (device_location, device_id-timestamp, full_path)
         """
         try:
             archivos_jpg = []
@@ -447,11 +412,11 @@ class PredictPhotosService():
             
             if not reprocessing:
                 predicciones_result = prediccionesfoto_repository.all_data(items=path_files_valid)
+                
+                # Retirar los elementos que se encuentran en la base de datos
                 new_elements = set(path_files_valid) - predicciones_result
-
-                #path_files_valid = list(new_elements)
-                path_files_valid = [path_raw for _, _, path_raw in new_elements]
-                print(path_files_valid)
+                path_files_valid = list(new_elements)
+                print(f"Los archivos JPG que no se encuentran en la base de datos son: {path_files_valid}")
             
             if path_files_valid:
                 return path_files_valid
@@ -459,3 +424,47 @@ class PredictPhotosService():
         except Exception as e:
             print(f"Ocurrió un error durante la descarga de objetos del bucket. Detalle del error: {e}")
             return None
+
+
+    def process(self, data_objects:list):
+        """
+        Descripción:
+        Analizar cada una de las imágenes descargadas por la IA.
+
+        Input:
+            - Lista:List[set] Cada elemento de la lista está compuesto por un set(str, str, str).
+                Elementos: (device_location, device_id-timestamp, full_path)
+        Output:
+            - Lista:set(str, str) Cada elemento del conjunto está compuesto por un set(str, str).
+                Elementos: (foto_date, device_location)
+        """
+        try:
+            fechas_fotos_device_locations = set() # Lista de las fechas de las fotos que fueron procesadas correctamente.
+
+            for device_location, device_id_timestamp, full_path_bucket in data_objects:
+                aedes, mosquitos, moscas, path_foto_yolo = predict_casos(full_path_bucket)
+
+                if path_foto_yolo:
+                    device_id, timestamp = device_id_timestamp.split("-")
+                    foto_date = timestamp.strftime('%Y-%m-%d')
+                    foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    prediccionesfoto_repository.add_prediction(device_location, device_id_timestamp, device_id, aedes, mosquitos, moscas, full_path_bucket, path_foto_yolo, foto_date, foto_datetime)
+
+                    fechas_fotos_device_locations.add((foto_date, device_location))
+            return fechas_fotos_device_locations
+        except Exception as e:
+            print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
+            return fechas_fotos_device_locations
+
+    def resume(self, fecha, device_location):
+        """ 
+        Descripción:
+            Contabilizar aedes, mosquitos y moscas encontradas en todo un día.
+            Consulta la metadata de las fotos por device_id y device_location.
+            Almacena la suma de aedes, mosquitos y moscas en base de datos.
+        Input:
+            - fecha_insert:str Formato esperado YYYY-MM-DD. Ejemplo: "2022-12-09"
+            - device_location:str Ubicación de la cámara.
+        """
+        connectdb.insert_resumen_diario(fecha, device_location)

@@ -5,7 +5,7 @@ import folium
 from flask import Flask, render_template, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.date_format import get_datetime
-from utils.util import PredictPhotosService, DashboardService, PhotosService, DeviceLocationService, marcador_casos, get_casos_por_centro, get_casos_por_centro_from_s3, lista_casos, contabilizar_resumen_diario
+from utils.util import PredictPhotosService, DashboardService, PhotosService, DeviceLocationService, contabilizar_resumen_diario
 from utils.config import SCHEDULER_HORAS, SCHEDULER_MINUTOS
 
 file_env = open(".env", "r")
@@ -33,13 +33,13 @@ def predict_photos():
         print(f"Inicia el proceso predict_photos: {datetime_inicio}")
 
         service = PredictPhotosService()
-        full_path_file_download = service.get_new_objects()
+        list_new_objects = service.get_new_objects()
         
-        if full_path_file_download is not None:
-            fechas_fotos_device_locs = get_casos_por_centro_from_s3(full_path_file_download)
+        if list_new_objects is not None:
+            fechas_fotos_device_locs = service.process(list_new_objects)
 
             for fecha_foto, device_location in fechas_fotos_device_locs:
-                contabilizar_resumen_diario(fecha_foto, device_location)
+               service.resume(fecha_foto, device_location)
             
             key, message, code = "status", "OK", 200
         else:

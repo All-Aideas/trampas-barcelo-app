@@ -49,8 +49,8 @@ class ConnectBucket():
         self.s3_resource.put_object(Body=image_data, Bucket=self.bucket_name, Key=root_path_bucket)
         print(f"La imagen se ha subido exitosamente a AWS S3 {root_path_bucket}")
     
-    def get_url_imagen(self, ruta_imagen_bucket):
-        return "%s/%s/%s" % (self.s3_resource.meta.endpoint_url, self.bucket_name, ruta_imagen_bucket)
+    # def get_url_imagen(self, ruta_imagen_bucket):
+    #     return "%s/%s/%s" % (self.s3_resource.meta.endpoint_url, self.bucket_name, ruta_imagen_bucket)
 
 
 class LocationsRepository():
@@ -122,17 +122,16 @@ class PrediccionesFotoRepository():
         finally:
             return resultado
 
-    def add_prediction(self, device_location, device_id, aedes, mosquitos, moscas, foto_original, foto_yolov5, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime):
+    def add_prediction(self, device_location, device_id_timestamp, device_id, aedes, mosquitos, moscas, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime):
         """ Registrar objeto en base de datos.
         """
         try:
             timestamp = get_timestamp()
             data = {
-                "foto_original": foto_original,
-                "foto_yolov5": foto_yolov5,
                 "path_foto_raw": path_foto_raw,
                 "path_foto_yolo": path_foto_yolo,
                 "device_location": device_location,#"centro": device_location,
+                "device_id_timestamp": device_id_timestamp,#
                 "device_id": device_id,
                 "cantidad_aedes": aedes,
                 "cantidad_mosquitos": mosquitos,
@@ -212,7 +211,6 @@ class ResumenesDiarioRepository():
                 'cantidad_aedes': data.get('cantidad_aedes'), 
                 'cantidad_moscas': data.get('cantidad_moscas'), 
                 'cantidad_mosquitos': data.get('cantidad_mosquitos'), 
-                'foto_yolov5': data.get('foto_yolov5'),
                 'path_foto_yolo': data.get('path_foto_yolo'),
                 'timestamp_procesamiento': data.get('timestamp_procesamiento')
             }
@@ -279,9 +277,6 @@ class ConnectDataBase():
             centros = self.get_lista_centros()
             df_resultados_por_centro["centro_nombre"] = df_resultados_por_centro["centro"]\
                                                     .apply(lambda centro_codigo: centros.get(centro_codigo, {}).get("nombre_centro", ""))
-            
-            #df_resultados_por_centro["path_foto_yolo"] = df_resultados_por_centro["path_foto_yolo"] # Visualizar foto en HTML
-            df_resultados_por_centro["foto_yolov5"] = df_resultados_por_centro["path_foto_yolo"]
 
             if fecha is not None and centro is not None:
                 filtro = df_resultados_por_centro["centro"]==centro
@@ -313,13 +308,12 @@ class ConnectDataBase():
                                     .agg({'cantidad_aedes': 'sum', 
                                         'cantidad_moscas': 'sum', 
                                         'cantidad_mosquitos': 'sum', 
-                                        'foto_yolov5': 'last',
                                         'path_foto_yolo': 'last',
                                         'timestamp_procesamiento': 'last'})\
                                     .sort_values(by=["foto_fecha", "centro"])\
                                     .reset_index()
-            df_resumen_diario['ultima_foto'] = df_resumen_diario['foto_yolov5'] # S3 o relative path
-            df_resumen_diario = df_resumen_diario.drop(["foto_yolov5"], axis=1)
+            df_resumen_diario['ultima_foto'] = df_resumen_diario['path_foto_yolo'] # S3 o relative path
+            df_resumen_diario = df_resumen_diario.drop(["path_foto_yolo"], axis=1)
             
             filtro = df_resumen_diario["foto_fecha"]==fecha_insert
             df_resumen_diario = df_resumen_diario.where(filtro).dropna()
