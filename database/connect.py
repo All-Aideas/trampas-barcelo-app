@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 import pandas as pd
 import json
+import base64
 from decimal import Decimal
 from utils.date_format import get_datetime_from_str, get_timestamp_from_datetime, get_str_format_from_date_str, get_str_date_tz_from_timestamp
 from utils.config import s3, db, dynamodb, dynamodb_client, BUCKET_NAME

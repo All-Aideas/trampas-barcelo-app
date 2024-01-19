@@ -3,7 +3,6 @@ import base64
 import urllib3
 import json
 import folium
-import base64
 from database.connect import ResumenesDiarioRepository, PrediccionesFotoRepository, ConnectBucket, ConnectDataBase, get_timestamp_from_date, get_timestamp_format, LocationsRepository
 from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import pandas as pd
@@ -80,36 +79,48 @@ def get_valid_file(full_path:str):
         return None, None, None
 
 
-def invoke_api(url, encoded_string):
-    headers = {'Content-Type': 'application/json'}
-    cadena = f"data:image/jpeg;base64,{encoded_string}"
-    data = {"data": ["640", 0.45, 0.83, cadena]}
-    body = json.dumps(data).encode('utf-8')
-    http = urllib3.PoolManager()
-    response = http.request("POST",
-                            url,
-                            body=body,
-                            headers=headers)
-    return response
+def invoke_api(full_path_file):
+    try:
+        encoded_string = conncets3.get_image_base64(full_path_file)
+
+        cadena = f"data:image/jpeg;base64,{encoded_string}"
+        data = {"data": ["640", 0.45, 0.83, cadena]}
+        body = json.dumps(data).encode('utf-8')
+        http = urllib3.PoolManager()
+        response = http.request("POST",
+                                API_URL_PREDICT,
+                                body=body,
+                                headers={'Content-Type': 'application/json'})
+        
+        if response.status == 200:
+            # El primer elemento contiene la imagen.
+            # El segundo elemento contiene la metadata.
+            encoded_imagen, metadata = json.loads(response.data.decode('utf-8'))["data"]
+            
+    except Exception as err:
+        print(f"Error durante la invocación de la IA: {err}")
+        encoded_imagen, metadata = None, None
+    finally:
+        return encoded_imagen, metadata
 
 
-def predict_casos(nombre_imagen, encoded_string):
+def predict_casos(full_path_file):
     """ Obtiene la cantidad de aedes, mosquitos y moscas detectadas por la inteligencia artificial y almacena la imagen.
     """
     try:
         photos_service = PhotosService()
+
+        encoded_imagen, metadata = invoke_api(full_path_file)
+
+        print(type(metadata))
+        print(type(metadata["data"]))
         
-        response = invoke_api(API_URL_PREDICT, encoded_string)
-        print('Resultado de API {} para la foto {}'.format(response.status, nombre_imagen))
-        response_data = json.loads(response.data.decode('utf-8'))["data"]
-        # El primer elemento contiene la imagen.
-        # El segundo elemento contiene la metadata.
-        response_metadata = response_data[1]["data"]
-        print(f'Resultado de API para la foto {nombre_imagen}: {response_metadata}')
-        
-        response_data_imagen_yolo = response_data[0]
-        response_data_imagen_yolo = response_data_imagen_yolo.split("data:image/png;base64,")[1]
-        path_foto_yolo = photos_service.upload_imagen_s3(response_data_imagen_yolo, nombre_imagen.replace(".jpg","_yolov5.jpg"))
+        response_metadata = metadata["data"]
+        print(f'Resultado de API {response.status} para la foto {full_path_file}: {response_metadata}')
+    
+        response_data_imagen_yolo = encoded_imagen.split("data:image/png;base64,")[1]
+        to_full_path_bucket = full_path_file.replace(".jpg","_yolov5.jpg")
+        path_foto_yolo = photos_service.upload_imagen_s3(response_data_imagen_yolo, to_full_path_bucket)
         
         if not path_foto_yolo:
             return 0, 0, 0, None, None, None
@@ -118,7 +129,7 @@ def predict_casos(nombre_imagen, encoded_string):
         mosquitos = int(response_metadata[1][0])
         moscas = int(response_metadata[2][0])
         
-        ruta_normalizada = os.path.normpath(nombre_imagen)
+        ruta_normalizada = os.path.normpath(full_path_file)
         partes_ruta = ruta_normalizada.split(os.path.sep)
         nombre_archivo = partes_ruta[-1]
         
@@ -245,8 +256,7 @@ def get_casos_por_centro_from_s3(full_path_file_download:list):
         fechas_fotos_device_locations = set() # Lista de las fechas de las fotos que fueron procesadas correctamente.
 
         for full_path_bucket in full_path_file_download:
-            image_base64 = conncets3.get_image_base64(full_path_bucket)
-            aedes, mosquitos, moscas, path_foto_yolo, foto_fecha, foto_datetime = predict_casos(full_path_bucket, image_base64)
+            aedes, mosquitos, moscas, path_foto_yolo, foto_fecha, foto_datetime = predict_casos(full_path_bucket)
 
             partes_ruta = os.path.normpath(full_path_bucket).split(os.path.sep)
             
