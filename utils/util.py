@@ -37,7 +37,7 @@ class PhotosService():
     def get_image_base64(self, object_key):
         return conncets3.get_image_base64(object_key=object_key)
     
-    def upload_imagen_s3(base64_str, full_path):
+    def upload_imagen_s3(self, base64_str, full_path):
         try:
             print(f"File name {full_path} to upload to S3.")
 
