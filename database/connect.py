@@ -128,20 +128,20 @@ class PrediccionesFotoRepository():
         try:
             timestamp = get_timestamp()
             data = {
-                "path_foto_raw": path_foto_raw,
-                "path_foto_yolo": path_foto_yolo,
-                "device_location": device_location,#"centro": device_location,
-                "device_id_timestamp": device_id_timestamp,#
-                "device_id": device_id,
-                "cantidad_aedes": aedes,
-                "cantidad_mosquitos": mosquitos,
-                "cantidad_moscas": moscas,
-                "foto_fecha": foto_fecha,
-                "foto_datetime": foto_datetime,
-                "timestamp_procesamiento": timestamp, # Fecha de procesamiento
-                "fecha_procesamiento": get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")
+                "path_foto_raw": {'S':path_foto_raw},
+                "path_foto_yolo": {'S':path_foto_yolo},
+                "device_location": {'S':device_location},#"centro": device_location,
+                "device_id_timestamp": {'S':device_id_timestamp},#
+                "device_id": {'S':device_id},
+                "cantidad_aedes": {'N':aedes},
+                "cantidad_mosquitos": {'N':mosquitos},
+                "cantidad_moscas": {'N':moscas},
+                "foto_fecha": {'S':foto_fecha},
+                "foto_datetime": {'S':foto_datetime},
+                "timestamp_procesamiento": {'S':timestamp}, # Fecha de procesamiento
+                "fecha_procesamiento": {'S':get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")}
             }
-            self.table.put_item(Item=data)
+            self.dyn_resource.put_item(TableName=self.table_name, Item=data)
         except Exception as err:
             print(f"Ocurrió un error durante el registro de un edificio en la base de datos. Detalle del error: {err}")
 
