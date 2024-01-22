@@ -206,18 +206,15 @@ class ResumenesDiarioRepository():
                 'cantidad_moscas': moscas,
                 'cantidad_mosquitos': mosquitos,
                 'device_location': device_location,
-                'foto_fecha': foto_fecha, #"2024-01-22"
+                'foto_fecha': foto_fecha, # Ejemplo: "2024-01-22"
                 'foto_datetime': foto_datetime,
                 'path_foto_yolo': path_foto_yolo,
                 'timestamp_procesamiento': timestamp, # Fecha de procesamiento
                 'fecha_procesamiento': get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")
             }
             
-            # data['device_location'] = data['centro'] #
-            # device_location = data['centro'] #
-            # fecha_insert = data['foto_fecha'] #
             self.table.put_item(Item=data)
-            print(f"Registro exitoso en base de datos para la fecha {fecha_insert} y device_location {device_location}.")
+            print(f"Registro exitoso en base de datos para la fecha {foto_fecha} y device_location {device_location}.")
         except Exception as err:
             print(f"Ocurrió un error durante el registro en la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
 
