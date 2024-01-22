@@ -8,7 +8,7 @@ utc = pytz.utc
 
 def get_datetime_from_str(fecha_str, format="%Y-%m-%d"):
     date_value = datetime.strptime(fecha_str, format)
-    datetime_value = datetime(year=date_value.year, month=date_value.month, day=date_value.day)
+    datetime_value = datetime(year=date_value.year, month=date_value.month, day=date_value.day, hour=date_value.hour, minute=date_value.minute, second=date_value.second)
     datetime_tz_value = time_zone.localize(datetime_value, is_dst=True)
     return datetime_tz_value
 

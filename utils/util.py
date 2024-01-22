@@ -447,8 +447,8 @@ class PredictPhotosService():
 
                 if path_foto_yolo:
                     device_id, timestamp = device_id_timestamp.split("/")
-                    foto_date = timestamp.strftime('%Y-%m-%d')
-                    foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                    foto_date = get_str_format_from_date_str(date_str=timestamp, format_old='%Y-%m-%dT%H-%M-%S', format_new='%Y-%m-%d')
+                    foto_datetime = get_str_format_from_date_str(date_str=timestamp, format_old='%Y-%m-%dT%H-%M-%S', format_new='%Y-%m-%d %H:%M:%S')
                     
                     prediccionesfoto_repository.add_prediction(device_location, device_id_timestamp, device_id, aedes, mosquitos, moscas, full_path_bucket, path_foto_yolo, foto_date, foto_datetime)
 
