@@ -133,9 +133,9 @@ class PrediccionesFotoRepository():
                 "device_location": {'S':device_location},#"centro": device_location,
                 "device_id_timestamp": {'S':device_id_timestamp},#
                 "device_id": {'S':device_id},
-                "cantidad_aedes": {'N':aedes},
-                "cantidad_mosquitos": {'N':mosquitos},
-                "cantidad_moscas": {'N':moscas},
+                "cantidad_aedes": {'N':str(aedes)},
+                "cantidad_mosquitos": {'N':str(mosquitos)},
+                "cantidad_moscas": {'N':str(moscas)},
                 "foto_fecha": {'S':foto_fecha},
                 "foto_datetime": {'S':foto_datetime},
                 "timestamp_procesamiento": {'S':timestamp}, # Fecha de procesamiento
