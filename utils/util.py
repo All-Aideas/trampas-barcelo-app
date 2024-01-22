@@ -323,10 +323,10 @@ class DashboardService():
             df_resultado = df_merged[df_merged['foto_fecha'] == ultima_fecha_procesada]
             
             columnas_a_llenar_con_cero = ['cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas']
-            columnas_a_agrupar = ['centro', 'nombre_centro', 'latitud', 'longitud', 'foto_fecha', 'ultima_foto']
+            columnas_a_agrupar = ['device_location', 'nombre_centro', 'latitud', 'longitud', 'foto_fecha', 'path_foto_yolo']
             df_resultado = df_resultado[columnas_a_agrupar + columnas_a_llenar_con_cero]
 
-            default_values = {'foto_fecha': ultima_fecha_procesada, 'ultima_foto': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
+            default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
             df_resultado = df_resultado.fillna(default_values)
             
             resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
@@ -338,7 +338,7 @@ class DashboardService():
                 texto_resumen_imagen = ""
                 image_base64 = ""
 
-                url_ultima_foto = row['ultima_foto'] # Visualizar foto en HTML
+                url_ultima_foto = row['path_foto_yolo'] # Visualizar foto en HTML
                 
                 if url_ultima_foto:
                     image_base64 = conncets3.get_image_base64(url_ultima_foto)
