@@ -485,7 +485,7 @@ class PredictPhotosService():
                                             foto_datetime=fila["foto_datetime"])
 
         else:
-            path_foto_yolo_previous = df_resumenesdiario.loc[1, 'path_foto_yolo']
+            path_foto_yolo_previous = df_resumenesdiario['path_foto_yolo'].iloc[0]
             path_foto_yolo_new = fila["path_foto_yolo"]
 
             if path_foto_yolo_new > path_foto_yolo_previous:
