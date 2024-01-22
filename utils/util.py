@@ -464,6 +464,13 @@ class PredictPhotosService():
             return resultado
     
     def new_resumen(self, fila):
+        """
+        Descripción:
+        Consultar si existe un registro previo con la fecha y device_location.
+        Si no existe un registro previo, entonces se agregará un nuevo registro.
+        Si si existe un registro previo, entonces se evaluará el valor de path_foto_yolo para actualizar los valores
+        con las cantidades de la última foto. De lo contario, no se hará ninguna acción.
+        """
         resumenesdiario_repository = ResumenesDiarioRepository()
         df_resumenesdiario = resumenesdiario_repository.get(device_location=fila["device_location"], foto_fecha=fila["foto_fecha"])
 
@@ -477,12 +484,16 @@ class PredictPhotosService():
                                             foto_datetime=fila["foto_datetime"])
 
         else:
-            resumenesdiario_repository.update(device_location=fila["device_location"], 
-                                            foto_fecha=fila["foto_fecha"], 
-                                            aedes=fila["cantidad_aedes"], 
-                                            mosquitos=fila["cantidad_mosquitos"], 
-                                            moscas=fila["device_location"], 
-                                            path_foto_yolo=fila["path_foto_yolo"])
+            path_foto_yolo_previous = df_resumenesdiario.loc[1, 'path_foto_yolo']
+            path_foto_yolo_new = fila["path_foto_yolo"]
+
+            if path_foto_yolo_new > path_foto_yolo_previous:
+                resumenesdiario_repository.update(device_location=fila["device_location"], 
+                                                foto_fecha=fila["foto_fecha"], 
+                                                aedes=fila["cantidad_aedes"], 
+                                                mosquitos=fila["cantidad_mosquitos"], 
+                                                moscas=fila["device_location"], 
+                                                path_foto_yolo=fila["path_foto_yolo"])
 
     def resume(self, data_objects):
         """ 
