@@ -73,7 +73,7 @@ def get_valid_file(full_path:str):
         
         if flag:
             # print(f"Ubicación de archivo en el bucket: {full_path}")
-            return device_location, f"{device_id}-{nombre_archivo}", full_path
+            return device_location, f"{device_id}/{nombre_archivo}", full_path
         return None, None, None
     except Exception as e:
         print(f"Ocurrió un error durante la validación del objeto {full_path} del bucket. Detalle del error: {e}")
@@ -446,7 +446,7 @@ class PredictPhotosService():
                 aedes, mosquitos, moscas, path_foto_yolo = predict_casos(full_path_bucket)
 
                 if path_foto_yolo:
-                    device_id, timestamp = device_id_timestamp.split("-")
+                    device_id, timestamp = device_id_timestamp.split("/")
                     foto_date = timestamp.strftime('%Y-%m-%d')
                     foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
                     
