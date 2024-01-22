@@ -97,6 +97,7 @@ def invoke_api(image_size="640", nms_threshold=0.45, threshold=0.83, encoded_str
             # El primer elemento contiene la imagen.
             # El segundo elemento contiene la metadata.
             encoded_imagen, _, metadata = json.loads(response.data.decode('utf-8'))["data"]
+            metadata = metadata.get('detail', [])
     except Exception as err:
         print(f"Error durante la invocación de la IA: {err}")
     finally:
@@ -110,7 +111,7 @@ def predict_casos(full_path_file):
         photos_service = PhotosService()
 
         encoded_string = conncets3.get_image_base64(full_path_file)
-        encoded_imagen, metadata = invoke_api(encoded_string=encoded_string)
+        encoded_imagen, metadata_detail = invoke_api(encoded_string=encoded_string)
 
         print(f'Resultado de API para la foto {full_path_file}: {metadata_detail}')
         
@@ -123,7 +124,6 @@ def predict_casos(full_path_file):
             return 0, 0, 0, None
         
         # Recuperar la metadata
-        metadata_detail = metadata.get('detail', [])
         aedes = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Aedes')
         mosquitos = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosquito')
         moscas = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosca')
