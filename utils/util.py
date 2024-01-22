@@ -319,7 +319,7 @@ class DashboardService():
             #df_merged.apply(self.add_marker, axis=1, mapa=mapa)
         else:
             # Obtener última fecha procesada
-            ultima_fecha_procesada = df_merged['foto_fecha'].iloc[0] if fecha is None else fecha
+            ultima_fecha_procesada = df_merged['foto_fecha'].iloc[0] if foto_fecha is None else foto_fecha
             df_resultado = df_merged[df_merged['foto_fecha'] == ultima_fecha_procesada]
             
             columnas_a_llenar_con_cero = ['cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas']
