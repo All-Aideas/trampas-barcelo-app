@@ -138,7 +138,7 @@ class PrediccionesFotoRepository():
                 "cantidad_moscas": {'N':str(moscas)},
                 "foto_fecha": {'S':foto_fecha},
                 "foto_datetime": {'S':foto_datetime},
-                "timestamp_procesamiento": {'S':timestamp}, # Fecha de procesamiento
+                "timestamp_procesamiento": {'S':str(timestamp)}, # Fecha de procesamiento
                 "fecha_procesamiento": {'S':get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")}
             }
             self.dyn_resource.put_item(TableName=self.table_name, Item=data)
