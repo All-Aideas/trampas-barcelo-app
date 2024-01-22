@@ -5,6 +5,7 @@ import json
 import folium
 from database.connect import ResumenesDiarioRepository, PrediccionesFotoRepository, ConnectBucket, ConnectDataBase, get_timestamp_from_date, get_timestamp_format, LocationsRepository
 from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
+import numpy as np
 import pandas as pd
 from datetime import datetime
 
@@ -451,20 +452,55 @@ class PredictPhotosService():
                     
                     prediccionesfoto_repository.add_prediction(device_location, device_id_timestamp, device_id, aedes, mosquitos, moscas, full_path_bucket, path_foto_yolo, foto_date, foto_datetime)
 
-                    fechas_fotos_device_locations.add((foto_date, device_location))
-            return fechas_fotos_device_locations
+                    fechas_fotos_device_locations.add((device_location, aedes, mosquitos, moscas, full_path_bucket, path_foto_yolo, foto_date, foto_datetime))
+                
+            data = list(fechas_fotos_device_locations)
         except Exception as e:
             print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
-            return fechas_fotos_device_locations
+            data = []
+        finally:
+            columnas = ['device_location', 'cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas', 'full_path_bucket', 'path_foto_yolo', 'foto_fecha', 'foto_datetime']
+            resultado = pd.DataFrame(data, columns=columnas)
+            return resultado
+    
+    def new_resumen(self, fila):
+        resumenesdiario_repository = ResumenesDiarioRepository()
+        df_resumenesdiario = resumenesdiario_repository.get(device_location=fila["device_location"], foto_fecha=fila["foto_fecha"])
 
-    def resume(self, fecha, device_location):
+        if df_resumenesdiario.empty:
+            resumenesdiario_repository.add(device_location=fila["device_location"], 
+                                            aedes=fila["cantidad_aedes"], 
+                                            mosquitos=fila["cantidad_mosquitos"], 
+                                            moscas=fila["device_location"], 
+                                            path_foto_yolo=fila["path_foto_yolo"], 
+                                            foto_fecha=fila["foto_fecha"], 
+                                            foto_datetime=fila["foto_datetime"])
+
+        else:
+            resumenesdiario_repository.update(device_location=fila["device_location"], 
+                                            foto_fecha=fila["foto_fecha"], 
+                                            aedes=fila["cantidad_aedes"], 
+                                            mosquitos=fila["cantidad_mosquitos"], 
+                                            moscas=fila["device_location"], 
+                                            path_foto_yolo=fila["path_foto_yolo"])
+
+    def resume(self, data_objects):
         """ 
         Descripción:
-            Contabilizar aedes, mosquitos y moscas encontradas en todo un día.
-            Consulta la metadata de las fotos por device_id y device_location.
+            Obtener la cantidad de aedes, mosquitos y moscas encontradas en la última foto de un día.
             Almacena la suma de aedes, mosquitos y moscas en base de datos.
         Input:
-            - fecha_insert:str Formato esperado YYYY-MM-DD. Ejemplo: "2022-12-09"
-            - device_location:str Ubicación de la cámara.
+            - data_objects:DataFrame Objetos que fueron analizados por la IA.
         """
-        connectdb.insert_resumen_diario(fecha, device_location)
+        # connectdb.insert_resumen_diario(fecha_insert=fecha, device_location=device_location)
+
+        df_resumen = data_objects.groupby(["foto_fecha", "device_location"])\
+                                .agg({'cantidad_aedes': 'last', 
+                                    'cantidad_moscas': 'last', 
+                                    'cantidad_mosquitos': 'last', 
+                                    'path_foto_yolo': 'last',
+                                    'foto_datetime': 'last'})\
+                                .sort_values(by=["foto_fecha", "device_location"])\
+                                .reset_index()
+        if not df_resumen.empty:
+            df_resumen.apply(self.new_resumen, axis=1) # Recorrer fila por fila

@@ -36,10 +36,8 @@ def predict_photos():
         list_new_objects = service.get_new_objects()
         
         if list_new_objects is not None:
-            fechas_fotos_device_locs = service.process(list_new_objects)
-
-            for fecha_foto, device_location in fechas_fotos_device_locs:
-               service.resume(fecha_foto, device_location)
+            data_objects = service.process(list_new_objects)            
+            service.resume(data_objects)
             
             key, message, code = "status", "OK", 200
         else:

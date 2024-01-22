@@ -178,10 +178,10 @@ class ResumenesDiarioRepository():
             print(f"Ocurrió un error durante la consulta a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
             data = []
         finally:
-            columns = ["cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos", "device_location", "foto_fecha", "path_foto_yolo", "ultima_foto"]
+            columns = ["cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos", "device_location", "foto_fecha", "path_foto_yolo"]
             return pd.DataFrame(data, columns=columns)
 
-    def get(self, device_location, foto_fecha):
+    def get(self, device_location:str, foto_fecha:str) -> pd.DataFrame:
         try:
             response = self.table.get_item(
                 Key={
@@ -191,28 +191,46 @@ class ResumenesDiarioRepository():
             )
             item = response['Item']
             print(item)
-            return item
         except Exception as err:
             print(f"Ocurrió un error durante la consulta del registro ({device_location} {foto_fecha}) a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
-    
-    def add(self, data):
+            item = []
+        finally:
+            columns = ["cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos", "device_location", "foto_fecha", "path_foto_yolo"]
+            return pd.DataFrame(item, columns=columns)
+
+    def add(self, device_location, aedes, mosquitos, moscas, path_foto_yolo, foto_fecha, foto_datetime):
         try:
-            data['device_location'] = data['centro'] #
-            device_location = data['centro'] #
-            fecha_insert = data['foto_fecha'] #
+            timestamp = get_timestamp()
+            data = {
+                'cantidad_aedes': aedes,
+                'cantidad_moscas': moscas,
+                'cantidad_mosquitos': mosquitos,
+                'device_location': device_location,
+                'foto_fecha': foto_fecha, #"2024-01-22"
+                'foto_datetime': foto_datetime,
+                'path_foto_yolo': path_foto_yolo,
+                'timestamp_procesamiento': timestamp, # Fecha de procesamiento
+                'fecha_procesamiento': get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")
+            }
+            
+            # data['device_location'] = data['centro'] #
+            # device_location = data['centro'] #
+            # fecha_insert = data['foto_fecha'] #
             self.table.put_item(Item=data)
             print(f"Registro exitoso en base de datos para la fecha {fecha_insert} y device_location {device_location}.")
         except Exception as err:
             print(f"Ocurrió un error durante el registro en la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
 
-    def update(self, data, device_location, foto_fecha):
+    def update(self, device_location, foto_fecha, aedes, mosquitos, moscas, path_foto_yolo):
         try:
+            timestamp = get_timestamp()
             new_values = {
-                'cantidad_aedes': data.get('cantidad_aedes'), 
-                'cantidad_moscas': data.get('cantidad_moscas'), 
-                'cantidad_mosquitos': data.get('cantidad_mosquitos'), 
-                'path_foto_yolo': data.get('path_foto_yolo'),
-                'timestamp_procesamiento': data.get('timestamp_procesamiento')
+                'cantidad_aedes': aedes, 
+                'cantidad_moscas': moscas, 
+                'cantidad_mosquitos': mosquitos, 
+                'path_foto_yolo': path_foto_yolo,
+                'timestamp_procesamiento': timestamp, # Fecha de procesamiento
+                'fecha_procesamiento': get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")
             }
 
             # Construir la expresión de actualización
