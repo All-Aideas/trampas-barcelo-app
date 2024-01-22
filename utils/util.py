@@ -8,6 +8,7 @@ from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import numpy as np
 import pandas as pd
 from datetime import datetime
+from utils.date_format import get_str_format_from_date_str
 
 
 class DeviceLocationService():
