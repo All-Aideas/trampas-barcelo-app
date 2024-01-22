@@ -189,7 +189,7 @@ class ResumenesDiarioRepository():
                     'foto_fecha': foto_fecha
                 }
             )
-            item = response['Item']
+            item = response.get('Item', [])
             print(item)
         except Exception as err:
             print(f"Ocurrió un error durante la consulta del registro ({device_location} {foto_fecha}) a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")

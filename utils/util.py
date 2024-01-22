@@ -479,7 +479,7 @@ class PredictPhotosService():
             resumenesdiario_repository.add(device_location=fila["device_location"], 
                                             aedes=fila["cantidad_aedes"], 
                                             mosquitos=fila["cantidad_mosquitos"], 
-                                            moscas=fila["device_location"], 
+                                            moscas=fila["cantidad_moscas"], 
                                             path_foto_yolo=fila["path_foto_yolo"], 
                                             foto_fecha=fila["foto_fecha"], 
                                             foto_datetime=fila["foto_datetime"])
@@ -493,7 +493,7 @@ class PredictPhotosService():
                                                 foto_fecha=fila["foto_fecha"], 
                                                 aedes=fila["cantidad_aedes"], 
                                                 mosquitos=fila["cantidad_mosquitos"], 
-                                                moscas=fila["device_location"], 
+                                                moscas=fila["cantidad_moscas"], 
                                                 path_foto_yolo=fila["path_foto_yolo"])
 
     def resume(self, data_objects):
