@@ -48,10 +48,10 @@
                 <tbody>
                     {% for resumen_diario in resumenes_diario_datos %}
                     <tr onclick="verDetalle('{{ resumen_diario.foto_fecha }}', 
-                                            '{{ resumen_diario.centro }}' )">
+                                            '{{ resumen_diario.device_location }}' )">
                         <td class="ocultar">{{ timestamp_procesamiento }}</td>
                         <td>{{ resumen_diario.fecha_formato }}</td>
-                        <td>{{ resumen_diario.centro_nombre }}</td>
+                        <td>{{ resumen_diario.nombre_centro }}</td>
                         <td>{{ resumen_diario.cantidad_aedes|int }}</td>
                         <td>{{ resumen_diario.cantidad_mosquitos|int }}</td>
                         <td>{{ resumen_diario.cantidad_moscas|int }}</td>
@@ -86,10 +86,10 @@
                 <tbody>
                     {% for resumen_diario in resumenes_diario_detalle %}
                     <tr onclick="verImagenes('{{ resumen_diario.foto_datetime }}',
-                                            '{{ resumen_diario.centro_nombre }}', 
+                                            '{{ resumen_diario.nombre_centro }}', 
                                             '{{ resumen_diario.path_foto_yolo }}' )">
                         <td>{{ resumen_diario.foto_datetime }}</td>
-                        <td>{{ resumen_diario.centro_nombre }}</td>
+                        <td>{{ resumen_diario.nombre_centro }}</td>
                         <td>{{ resumen_diario.device_id }}</td>
                         <td>{{ resumen_diario.cantidad_aedes|int }}</td>
                         <td>{{ resumen_diario.cantidad_mosquitos|int }}</td>

@@ -331,6 +331,7 @@ class DashboardService():
             
             resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
             resultado_agrupado['lat_lng'] = resultado_agrupado.apply(lambda row: [row['latitud'], row['longitud']], axis=1)
+            resultado_agrupado['fecha_formato'] = resultado_agrupado['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
 
             for _, row in resultado_agrupado.iterrows():
                 centro_lat_lng = row['lat_lng']
