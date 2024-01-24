@@ -178,9 +178,9 @@ def get_casos_por_centro(mapa, fecha=None):
     Output:
         - None.
     """
-    #centros_prevencion = connectdb.get_lista_centros()
-    devicelocationservice = DeviceLocationService()
-    centros_prevencion = devicelocationservice.get_locations()
+    centros_prevencion = connectdb.get_lista_centros()
+    # devicelocationservice = DeviceLocationService()
+    # centros_prevencion = devicelocationservice.get_locations()
     
     df_resumenes_diario = connectdb.get_datos_resumen_diario(fecha, centros=centros_prevencion)
     # print(df_resumenes_diario)
@@ -317,8 +317,9 @@ def marcador_casos(fecha=None):
 def lista_casos(fecha_formato=None, centro=None):
     """ Mostrar detalle de los casos.
     """
-    devicelocationservice = DeviceLocationService()
-    locations = devicelocationservice.get_locations()
+    # devicelocationservice = DeviceLocationService()
+    # locations = devicelocationservice.get_locations()
+    locations = connectdb.get_lista_centros()
     
     if fecha_formato is not None:
         marcador_casos(fecha_formato)

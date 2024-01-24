@@ -25,7 +25,7 @@ def get_timestamp_format(timestamp_value, format="%d/%m/%Y"):
 
 class ConnectDynamoDB():
 
-    def __init__(self, dyn_resource, table_name):
+    def __init__(self, table_name):
         self.dyn_resource = dynamodb
         self.table = self.dyn_resource.Table(table_name)
     
