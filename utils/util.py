@@ -42,7 +42,7 @@ def predict_objects_from_s3(reprocessing:bool=False):
         #print(f"Archivos JPG que se encuentran en el bucket: {archivos_jpg}")
         
         path_files_valid = [file for file in [get_valid_file(archivo_valido) for archivo_valido in archivos_jpg] if file]
-        print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
+        #print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
         
         if not reprocessing:
             df_fotos_procesadas = connectdb.get_datos_prediccion()
