@@ -89,7 +89,7 @@ def get_image_base64(object_key):
 def invoke_api(url, encoded_string):
     headers = {'Content-Type': 'application/json'}
     cadena = f"data:image/jpeg;base64,{encoded_string}"
-    data = {"data": ["640", 0.45, 0.83, cadena]}
+    data = {"data": ["640", 0.45, 0.70, cadena]}
     body = json.dumps(data).encode('utf-8')
     http = urllib3.PoolManager()
     response = http.request("POST",
@@ -97,7 +97,6 @@ def invoke_api(url, encoded_string):
                             body=body,
                             headers=headers)
     return response
-
 
 def upload_imagen_s3(base64_str, full_path):
     try:
