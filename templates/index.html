@@ -193,6 +193,7 @@
             success: function(data) {
                 console.log(data)
                 mostrarDatosDetalle(data);
+                reload(fecha_formato)
             },
             error: function(error) {
                 console.error('Error al obtener datos de detalle:', error);

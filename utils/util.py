@@ -356,6 +356,50 @@ class DashboardService():
         
         df_merged.sort_values(by=["fecha_datetime", "device_location", "path_foto_yolo"], inplace=True)
 
+        # Mostrar en mapa
+        mapa = folium.Map(
+            location=[-34.5106, -58.4964],
+            zoom_start=13,
+        )
+        # Obtener última fecha procesada
+        ultima_fecha_procesada = foto_fecha#df_merged['foto_fecha'].iloc[0] if foto_fecha is None else foto_fecha
+        df_resultado = df_merged[df_merged['foto_fecha'] == ultima_fecha_procesada]
+        
+        columnas_a_llenar_con_cero = ['cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas']
+        columnas_a_agrupar = ['device_location', 'nombre_centro', 'latitud', 'longitud', 'foto_fecha', 'path_foto_yolo']
+        df_resultado = df_resultado[columnas_a_agrupar + columnas_a_llenar_con_cero]
+
+        default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
+        df_resultado = df_resultado.fillna(default_values)
+        
+        resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
+        resultado_agrupado['lat_lng'] = resultado_agrupado.apply(lambda row: [row['latitud'], row['longitud']], axis=1)
+        
+        for _, row in resultado_agrupado.iterrows():
+            centro_lat_lng = row['lat_lng']
+            centro_nombre = row['nombre_centro']
+            texto_resumen_imagen = ""
+            image_base64 = ""
+
+            url_ultima_foto = row['path_foto_yolo'] # Visualizar foto en HTML
+            
+            if url_ultima_foto:
+                image_base64 = conncets3.get_image_base64(url_ultima_foto)
+            texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='data:image/jpeg;base64,{image_base64}' width='100%' /></div>"
+
+            texto_resumen_no_imagen = f"<div>No hay fotos del día {ultima_fecha_procesada}.</div>"
+            texto_resumen_imagen = texto_resumen_imagen if len(image_base64) > 0 else texto_resumen_no_imagen
+            mostrar_descripcion = True if len(image_base64) > 0 else False
+
+            aedes_total, mosquitos_total, moscas_total = int(row['cantidad_aedes']), int(row['cantidad_mosquitos']), int(row['cantidad_moscas'])
+            set_market(mapa, lat_lng=centro_lat_lng, 
+                    name=centro_nombre, 
+                    description=texto_resumen_imagen, 
+                    show_description=mostrar_descripcion,
+                    aedes_total=aedes_total, mosquitos_total=mosquitos_total, moscas_total=moscas_total)
+
+        mapa.save('templates/mapa.html')
+
         json_datos_resumen_diario_detalle = json.loads(df_merged.to_json(orient="records"))
         return json_datos_resumen_diario_detalle
     
