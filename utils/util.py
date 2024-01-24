@@ -102,7 +102,7 @@ def invoke_api(image_size="640", nms_threshold=0.45, threshold=0.83, encoded_str
     except Exception as err:
         print(f"Error durante la invocación de la IA: {err}")
     finally:
-        return encoded_imagen, metadata
+        return response.status, encoded_imagen, metadata
 
 
 def predict_casos(full_path_file):
@@ -112,9 +112,9 @@ def predict_casos(full_path_file):
         photos_service = PhotosService()
 
         encoded_string = conncets3.get_image_base64(full_path_file)
-        encoded_imagen, metadata_detail = invoke_api(encoded_string=encoded_string)
+        status, encoded_imagen, metadata_detail = invoke_api(encoded_string=encoded_string)
 
-        print(f'Resultado de API para la foto {full_path_file}: {metadata_detail}')
+        print(f'Resultado de API ({status}) para la foto {full_path_file}: {metadata_detail}')
         
         # Almacenar la foto procesada en el bucket
         response_data_imagen_yolo = encoded_imagen.split("data:image/png;base64,")[1]
