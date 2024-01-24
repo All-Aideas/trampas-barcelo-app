@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trampas Barceló</title>
 
-  <script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
   <script type="text/javascript" src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
   <script type="text/javascript" src="https://cdn.datatables.net/1.13.1/js/dataTables.bootstrap5.min.js"></script>
   <!-- BOOSTRAP CSS -->
@@ -17,6 +18,19 @@
   <!-- Toastify CSS -->
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+
+  <script>
+    $(document).ready(function () {
+        $('#tabla_resumenes_diario_datos').DataTable({
+            order: [[0, 'asc']],
+            lengthMenu: [[10, 20, 30, -1], [10, 20, 30, 'All']]
+        });
+        $('#tabla_resumenes_diario_detalle').DataTable({
+            order: [[0, 'asc']],
+        });
+        $('.container_imagen').css('display','none');
+    });
+  </script>
 </head>
 
 <body>
@@ -46,14 +60,76 @@
     </div>
   </div>
   <div class="container_mapa-dashboard pt-4 mapa-dashboard" style="display:'none'">
+    
     <div class="container_dashboard_body">
-      <div class="item_dashboard_tabla" >
-        <iframe id="detalle-casos" 
-          src="/detalle-casos" width="100%" height="100%"
-          frameborder="0" scrolling="no" onload="resizeIframe(this)"></iframe>
+      <div class="item_dashboard_tabla container_dashboard_item">
+        <table id="tabla_resumenes_diario_datos" class="table table-striped" style="width:100%">
+          <thead>
+            <tr>
+              <th class="ocultar">Timestamp</th>
+              <th>Fecha</th>
+              <th>Centro</th>
+              <th>Aedes</th>
+              <th>Mosquitos</th>
+              <th>Moscas</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for resumen_diario in resumenes_diario_datos %}
+            <tr onclick="verDetalle('{{ resumen_diario.foto_fecha }}', 
+                                    '{{ resumen_diario.device_location }}' )">
+              <td class="ocultar">{{ timestamp_procesamiento }}</td>
+              <td>{{ resumen_diario.fecha_formato }}</td>
+              <td>{{ resumen_diario.nombre_centro }}</td>
+              <td>{{ resumen_diario.cantidad_aedes|int }}</td>
+              <td>{{ resumen_diario.cantidad_mosquitos|int }}</td>
+              <td>{{ resumen_diario.cantidad_moscas|int }}</td>
+              <td><button type="button" class="btn btn-primary btn-sm">Listar fotos</button></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      
-    </div>
+      <div class="item_dashboard_mapa container_dashboard_item">
+        <iframe id="mapa" class="dashboard_mapa" src="/mapa" width="100%" height="100%"></iframe>
+      </div>
+    </div><!-- Fin de container_dashboard_body -->
+    <div class="container_dashboard_body">
+
+      <div class="item_dashboard_tabla_detail container_dashboard_det_item">
+        <table id="tabla_resumenes_diario_detalle" class="table table-striped" style="width:100%">
+          <thead>
+              <tr>
+                  <th scope="col">Fecha</th>
+                  <th scope="col">Centro</th>
+                  <th scope="col">Cámara</th>
+                  <th scope="col">Aedes</th>
+                  <th scope="col">Mosquitos</th>
+                  <th scope="col">Moscas</th>
+                  <th scope="col">Acciones</th>
+              </tr>
+          </thead>
+          <tbody id="tabla_resumenes_diario_detalle_body">
+              <!-- Contenido del detalle -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="item_imagen_yolo container_dashboard_det_item">
+        <div class="container_imagen">
+          <div class="item">
+            <div>
+              <label id="imagen_yolov5_label"></label>
+            </div>
+            <div>
+              <img id="imagen_yolov5" class="img-fluid" src="" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- Fin de container_dashboard_body -->
+
   </div>
   <!-- Modal -->
   <div class="modal fade" id="signinModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalSignin"
@@ -79,11 +155,71 @@
   
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script> -->
   <script>
-    function resizeIframe(obj) {
-      obj.style.height = obj.contentWindow.document.documentElement.scrollHeight + 'px';
+    
+    function reload(fecha_busqueda) {
+        var valor = "/mapa";
+        if(fecha_busqueda != null){
+          valor = "/mapa?fecha_busqueda=" + fecha_busqueda
+        }
+        document.getElementById('mapa').src = valor;
+    }
+
+    function mostrarDatosDetalle(data) {
+        var detalleBody = $('#tabla_resumenes_diario_detalle_body');
+        detalleBody.empty();  // Limpiar las filas existentes
+
+        // Agregar las nuevas filas de detalle
+        for (var i = 0; i < data.length; i++) {
+            var resumen_diario = data[i];
+            var nuevaFila = '<tr onclick="verImagenes(\'' + resumen_diario.foto_datetime + '\', \'' + resumen_diario.nombre_centro + '\', \'' + resumen_diario.path_foto_yolo + '\')">';
+            nuevaFila = nuevaFila + '<td>'+ resumen_diario.foto_datetime + '</td>';
+            nuevaFila = nuevaFila + '<td>'+ resumen_diario.nombre_centro + '</td>';
+            nuevaFila = nuevaFila + '<td>'+ resumen_diario.device_id + '</td>';
+            nuevaFila = nuevaFila + '<td>'+ resumen_diario.cantidad_aedes + '</td>';
+            nuevaFila = nuevaFila + '<td>'+ resumen_diario.cantidad_mosquitos + '</td>';
+            nuevaFila = nuevaFila + '<td>'+ resumen_diario.cantidad_moscas + '</td>';
+            nuevaFila = nuevaFila + '<td><button type="button" class="btn btn-primary btn-sm">Ver imágen</button></td></tr>';
+            detalleBody.append(nuevaFila);
+        }
+    }
+
+    function verDetalle(fecha_formato, centro){
+        // document.location.href = "detalle-casos?fecha_formato=" + fecha_formato + "&centro=" + centro;
+        $.ajax({
+            url: '/detalle-casos?fecha_formato=' + fecha_formato + "&centro=" + centro,
+            method: 'GET',
+            success: function(data) {
+                console.log(data)
+                mostrarDatosDetalle(data);
+            },
+            error: function(error) {
+                console.error('Error al obtener datos de detalle:', error);
+            }
+        });
+    }
+
+    function verImagenes(fecha_formato, centro_nombre, path_foto_yolo){
+        // path_foto_yolo : Path de la imagen en el bucket
+        // Realizar la solicitud HTTP
+        fetch("/imagen?key=" + encodeURIComponent(path_foto_yolo))
+            .then(response => response.text())
+            .then(base64String => {
+                // Asignar el resultado al atributo src de la imagen
+                var imagenElement = document.getElementById("imagen_yolov5");
+                imagenElement.src = "data:image/jpeg;base64," + base64String;
+            })
+            .catch(error => {
+                console.error('Error al cargar la imagen:', error);
+            });
+
+        var label_imagen = "Foto tomada el <b>" + fecha_formato + "</b> en <b>" + centro_nombre + "</b>."
+        document.getElementById('imagen_yolov5_label').innerHTML = label_imagen
+        $('.container_imagen').css('display','flex');
     }
   </script>
+
   <!-- Toastify js -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
   <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>

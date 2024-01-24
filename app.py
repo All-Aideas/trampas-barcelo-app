@@ -5,7 +5,7 @@ import folium
 from flask import Flask, render_template, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.date_format import get_datetime
-from utils.util import PredictPhotosService, DashboardService, PhotosService, DeviceLocationService, contabilizar_resumen_diario
+from utils.util import PredictPhotosService, DashboardService, PhotosService, DeviceLocationService
 from utils.config import SCHEDULER_HORAS, SCHEDULER_MINUTOS
 
 file_env = open(".env", "r")
@@ -52,7 +52,6 @@ def predict_photos():
         return jsonify({key: message}), code
 
 
-
 @app.route('/predict')
 def predecir():
     with app.app_context():
@@ -60,40 +59,14 @@ def predecir():
     return response
 
 
-@app.route('/resumen_diario')
-def obtener_resumen_diario():
-    """
-    Descripción:
-        Proceso manual para contabilizar.
-        Contabilizar aedes, mosquitos y moscas encontradas en todo un día.
-        Consulta la metadata de las fotos por device_id y device_location.
-        Almacena la suma de aedes, mosquitos y moscas en base de datos.
-    Input:
-        - fecha: Formato esperado YYYY-MM-DD. Ejemplo: "2022-12-09"
-    """
-    try:
-        fecha = request.args.get("fecha")
-        device_location = request.args.get("device_location")
-        contabilizar_resumen_diario(fecha, device_location)
-        return jsonify({"status": "OK"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 503
-
-
 @app.route('/')
 def index():
     """ Página principal de la aplicación.
     """
-    # devicelocationservice = DeviceLocationService()
-    # locations = devicelocationservice.all_data()
-    
-    # marcador_casos(locations=locations)
-    # json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=None, centro=None, locations=locations)
     dashboard = DashboardService()
-    json_datos_resumen_diario, json_datos_resumen_diario_detalle = dashboard.get_resumenes(foto_fecha=None, device_location=None)
+    json_datos_resumen_diario = dashboard.get_resumenes(foto_fecha=None, device_location=None)
     return render_template('index.html', 
-            resumenes_diario_datos=json_datos_resumen_diario,
-            resumenes_diario_detalle=json_datos_resumen_diario_detalle)
+            resumenes_diario_datos=json_datos_resumen_diario)
 
 
 @app.route('/mapa')
@@ -109,18 +82,9 @@ def detalle_casos():
     centro = request.args.get("centro")
     print(f"Fecha: {fecha_formato}. Centro: {centro}")
     
-    # devicelocationservice = DeviceLocationService()
-    # locations = devicelocationservice.all_data()
-    
-    # json_datos_resumen_diario, json_datos_resumen_diario_detalle = lista_casos(fecha_formato=fecha_formato, centro=centro, locations=locations)    
-    # marcador_casos(fecha=fecha_formato, locations=locations)
-
     dashboard = DashboardService()
-    json_datos_resumen_diario, json_datos_resumen_diario_detalle = dashboard.get_resumenes(foto_fecha=fecha_formato, device_location=centro)
-    
-    return render_template('detalle-casos.html', 
-            resumenes_diario_datos=json_datos_resumen_diario,
-            resumenes_diario_detalle=json_datos_resumen_diario_detalle)
+    json_datos_resumen_diario_detalle = dashboard.get_detalle(foto_fecha=fecha_formato, device_location=centro)
+    return jsonify(json_datos_resumen_diario_detalle)
 
 
 @app.route('/imagen')

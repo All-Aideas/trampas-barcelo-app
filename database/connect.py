@@ -7,7 +7,7 @@ import base64
 from decimal import Decimal
 from utils.date_format import get_datetime_from_str, get_timestamp_from_datetime, get_str_format_from_date_str, get_str_date_tz_from_timestamp
 from utils.config import s3, db, dynamodb, dynamodb_client, BUCKET_NAME
-from boto3.dynamodb.conditions import Attr
+from boto3.dynamodb.conditions import Attr, Key
 
 
 def get_timestamp():
@@ -99,6 +99,9 @@ class PrediccionesFotoRepository():
     
     def all_data(self, items:list):
         """Obtener los datos de los edificios que tienen trampas.
+        Input:
+            - Lista:List[set] Cada elemento de la lista está compuesto por un set(str, str, str).
+                Elementos: (device_location, device_id-timestamp, full_path)
         """
         try:
             resultado = set()
@@ -121,6 +124,28 @@ class PrediccionesFotoRepository():
             resultado = set()
         finally:
             return resultado
+    
+    def find(self, device_location:str, device_id_timestamp:str) -> pd.DataFrame:
+        try:
+            data = set()
+
+            #keys = [{'device_location': {'S': location}, 'device_id_timestamp': {'S': device_id_timestamp}} for location, device_id_timestamp, _ in items_batch]
+            keys = [{'device_location': {'S': device_location}, 'device_id_timestamp': {'S': device_id_timestamp}}]
+            response = self.dyn_resource.batch_get_item(
+                RequestItems={
+                    self.table_name: {
+                        'Keys': keys,
+                        'ProjectionExpression': 'device_location, device_id, device_id_timestamp, path_foto_yolo, foto_fecha, foto_datetime, cantidad_aedes, cantidad_moscas, cantidad_mosquitos'
+                    }
+                }
+            )
+            data.update((item['device_location']['S'], item['device_id']['S'], item['device_id_timestamp']['S'], item['path_foto_yolo']['S'], item['foto_fecha']['S'], item['foto_datetime']['S'], item['cantidad_aedes']['N'], item['cantidad_moscas']['N'], item['cantidad_mosquitos']['N']) for item in response.get('Responses', {}).get(self.table_name, []))
+        except Exception as e:
+            print(f"Ocurrió un error durante la consulta de la tabla predicciones_foto en la base de datos. Detalle del error: {e}")
+            data = set()
+        finally:
+            columns = ["device_location", "device_id", "device_id_timestamp", "path_foto_yolo", "foto_fecha", "foto_datetime", "cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos"]
+            return pd.DataFrame(data, columns=columns)
 
     def add_prediction(self, device_location, device_id_timestamp, device_id, aedes, mosquitos, moscas, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime):
         """ Registrar objeto en base de datos.
@@ -270,18 +295,9 @@ class ConnectDataBase():
         """
         try:
             df_resultados_por_centro = pd.DataFrame()
-            #key_find = "predicciones_foto"
-            #resultado = db.child(key_find).get().val()
             prediccionesfoto_repository = PrediccionesFotoRepository()
-            resultado = prediccionesfoto_repository.all_data()
+            df_resultados_por_centro = prediccionesfoto_repository.find(device_location=centro, device_id_timestamp=fecha)
             
-            # for resultados_por_foto in resultado.keys():
-            #     resultado_por_foto = resultado[resultados_por_foto]
-            #     for identificador_foto in resultado_por_foto.keys():
-            #         new_row = pd.DataFrame([resultado_por_foto[identificador_foto]])
-            #         df_resultados_por_centro = pd.concat([df_resultados_por_centro, new_row], ignore_index=True)
-            df_resultados_por_centro = pd.DataFrame(resultado)
-
             df_resultados_por_centro["fecha"] = df_resultados_por_centro["foto_fecha"]\
                                                     .apply(lambda col: col)
             df_resultados_por_centro["fecha_datetime"] = df_resultados_por_centro["foto_fecha"]\
@@ -290,20 +306,20 @@ class ConnectDataBase():
                                                     .apply(lambda col: get_str_format_from_date_str(col))
             
             centros = self.get_lista_centros()
-            df_resultados_por_centro["centro_nombre"] = df_resultados_por_centro["centro"]\
+            # print(centros)
+            df_resultados_por_centro["centro_nombre"] = df_resultados_por_centro["device_location"]\
                                                     .apply(lambda centro_codigo: centros.get(centro_codigo, {}).get("nombre_centro", ""))
 
             if fecha is not None and centro is not None:
-                filtro = df_resultados_por_centro["centro"]==centro
+                filtro = df_resultados_por_centro["device_location"]==centro
                 df_resultados_por_centro = df_resultados_por_centro.where(filtro).dropna()
                 filtro = df_resultados_por_centro["foto_fecha"]==fecha
                 df_resultados_por_centro = df_resultados_por_centro.where(filtro).dropna()
 
-            return df_resultados_por_centro.sort_values(by=["fecha_datetime", "centro", "path_foto_yolo"])
+            return df_resultados_por_centro.sort_values(by=["fecha_datetime", "device_location", "path_foto_yolo"])
         except Exception as e:
             print(f"Ocurrió un error durante la consulta a la base de datos. Detalle del error: {e}")
             return pd.DataFrame()
-
 
     def insert_resumen_diario(self, fecha_insert:str=None, device_location:str=None):
         """ 

@@ -8,7 +8,7 @@ from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from utils.date_format import get_str_format_from_date_str
+from utils.date_format import get_datetime_from_str, get_str_format_from_date_str
 
 
 class DeviceLocationService():
@@ -18,11 +18,7 @@ class DeviceLocationService():
         self.data = None
 
     def all_data(self):
-        # self.data = self.repository.all_data()
         resultado = self.repository.all_data()
-        #resultado = {item['device_location']: item for item in self.data}
-        #print("Ubicaciones de las trampas por device_location")
-        #print(resultado)
         return resultado
 
     def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
@@ -247,10 +243,6 @@ def set_market(mapa, lat_lng:list, name:str, description:str="", show_descriptio
     ).add_to(mapa)
 
 
-def contabilizar_resumen_diario(fecha, device_location):
-    connectdb.insert_resumen_diario(fecha, device_location)
-
-
 def marcador_casos(fecha=None, locations=[]):
     """ Mostrar los centros y cantidad de casos detectados.
     Los marcadores son almacenados en un HTML.
@@ -262,24 +254,6 @@ def marcador_casos(fecha=None, locations=[]):
     
     get_casos_por_centro(mapa, fecha, locations=locations)
     mapa.save('templates/mapa.html')
-
-
-def lista_casos(fecha_formato=None, centro=None, locations=[]):
-    """ Mostrar detalle de los casos.
-    """
-    
-    if fecha_formato is not None:
-        marcador_casos(fecha=fecha_formato, locations=locations)
-
-    df_resumen_diario = connectdb.get_datos_resumen_diario(centros=locations)
-
-    json_datos_resumen_diario = json.loads(df_resumen_diario.to_json(orient="records"))
-    
-    json_datos_resumen_diario_detalle = []
-    if fecha_formato is not None and centro is not None:
-        df_datos_prediccion = connectdb.get_datos_prediccion(fecha=fecha_formato, centro=centro)
-        json_datos_resumen_diario_detalle = json.loads(df_datos_prediccion.to_json(orient="records"))
-    return json_datos_resumen_diario, json_datos_resumen_diario_detalle
 
 
 def is_valid_format(nombre_archivo):
@@ -300,6 +274,8 @@ def is_valid_format(nombre_archivo):
 
 class DashboardService():
     def get_resumenes(self, foto_fecha=None, device_location=None):
+        """Mostrar el resumen de los casos detectados por día.
+        """
         devicelocationservice = DeviceLocationService()
         df_locations = devicelocationservice.all_data()
 
@@ -308,8 +284,9 @@ class DashboardService():
 
         df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='inner') \
                      .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
+        
         df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
-
+        
         mapa = folium.Map(
             location=[-34.5106, -58.4964],
             zoom_start=13,
@@ -359,12 +336,28 @@ class DashboardService():
         mapa.save('templates/mapa.html')
 
         json_datos_resumen_diario = json.loads(df_merged.to_json(orient="records"))
+        return json_datos_resumen_diario
     
-        json_datos_resumen_diario_detalle = []
-        if foto_fecha is not None and device_location is not None:
-            df_datos_prediccion = connectdb.get_datos_prediccion(fecha=foto_fecha, centro=device_location)
-            json_datos_resumen_diario_detalle = json.loads(df_datos_prediccion.to_json(orient="records"))
-        return json_datos_resumen_diario, json_datos_resumen_diario_detalle
+    def get_detalle(self, foto_fecha:str, device_location:str):
+        """Mostrar el detalle por ubicación y por fecha.
+        """
+        devicelocationservice = DeviceLocationService()
+        df_locations = devicelocationservice.all_data()
+
+        prediccionesfoto_repository = PrediccionesFotoRepository()
+        df_resultados_por_centro = prediccionesfoto_repository.find(device_location=device_location, device_id_timestamp=foto_fecha)
+
+        df_merged = pd.merge(df_resultados_por_centro, df_locations, on='device_location', how='inner') \
+                     .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
+        
+        df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
+        df_merged["fecha"] = df_merged["foto_fecha"].apply(lambda col: col)
+        df_merged["fecha_datetime"] = df_merged["foto_fecha"].apply(lambda col: get_datetime_from_str(col))
+        
+        df_merged.sort_values(by=["fecha_datetime", "device_location", "path_foto_yolo"], inplace=True)
+
+        json_datos_resumen_diario_detalle = json.loads(df_merged.to_json(orient="records"))
+        return json_datos_resumen_diario_detalle
     
     def add_marker(self, row, mapa):
         """
@@ -411,7 +404,7 @@ class PredictPhotosService():
             #print(f"Archivos JPG que se encuentran en el bucket: {archivos_jpg}")
             
             path_files_valid = [file for file in [get_valid_file(archivo_valido) for archivo_valido in archivos_jpg] if file]
-            print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
+            #print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
             
             if not reprocessing:
                 predicciones_result = prediccionesfoto_repository.all_data(items=path_files_valid)
@@ -419,7 +412,7 @@ class PredictPhotosService():
                 # Retirar los elementos que se encuentran en la base de datos
                 new_elements = set(path_files_valid) - predicciones_result
                 path_files_valid = list(new_elements)
-                print(f"Los archivos JPG que no se encuentran en la base de datos son: {path_files_valid}")
+                #print(f"Los archivos JPG que no se encuentran en la base de datos son: {path_files_valid}")
             
             if path_files_valid:
                 return path_files_valid
