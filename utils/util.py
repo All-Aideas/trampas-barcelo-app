@@ -49,7 +49,7 @@ def predict_objects_from_s3(reprocessing:bool=False):
             if not df_fotos_procesadas.empty:
                 df_fotos_procesadas = df_fotos_procesadas[['path_foto_raw']]
                 path_files_will_be_processed = [elemento for elemento in path_files_valid if elemento not in df_fotos_procesadas['path_foto_raw'].unique()]
-                print(f"Archivos JPG que serán procesados {path_files_will_be_processed}")
+                #print(f"Archivos JPG que serán procesados {path_files_will_be_processed}")
                 path_files_valid = path_files_will_be_processed
         
         if path_files_valid:
@@ -344,7 +344,7 @@ def is_valid_format(nombre_archivo):
         # print(f"El timestamp obtenido: {timestamp}")
         return True, timestamp
     except ValueError:
-        print(f"El formato del nombre del archivo no es válido. El nombre del archivo es: {nombre_archivo}")
+        #print(f"El formato del nombre del archivo no es válido. El nombre del archivo es: {nombre_archivo}")
         return False, None
     except Exception as e:
         print(f"Error durante la validación del formato del archivo. {e}")
