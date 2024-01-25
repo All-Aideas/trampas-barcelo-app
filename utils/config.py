@@ -15,7 +15,7 @@ FIREBASE_USER = os.getenv("FIREBASE_USER")
 FIREBASE_PASSWORD = os.getenv("FIREBASE_PASSWORD")
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
 FIREBASE_AUTHDOMAIN = os.getenv("FIREBASE_AUTHDOMAIN")
-FIREBASE_DATABASE = os.getenv("FIREBASE_DATABASE")
+FIREBASE_DATABASE = ""#os.getenv("FIREBASE_DATABASE")
 FIREBASE_PROJECTID = os.getenv("FIREBASE_PROJECTID")
 FIREBASE_STORAGEBUCKET = os.getenv("FIREBASE_STORAGEBUCKET")
 FIREBASE_MESSAGINGSENDERID = os.getenv("FIREBASE_MESSAGINGSENDERID")
@@ -38,7 +38,7 @@ config = {
 firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 user = auth.sign_in_with_email_and_password(FIREBASE_USER, FIREBASE_PASSWORD)
-db = firebase.database()
+# db = firebase.database()
 
 # Config AWS
 AWS_API_KEY = os.getenv("AWS_API_KEY")

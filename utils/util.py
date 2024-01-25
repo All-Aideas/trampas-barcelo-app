@@ -3,7 +3,7 @@ import base64
 import urllib3
 import json
 import folium
-from database.connect import ResumenesDiarioRepository, PrediccionesFotoRepository, ConnectBucket, ConnectDataBase, get_timestamp_from_date, get_timestamp_format, LocationsRepository
+from database.connect import ResumenesDiarioRepository, PrediccionesFotoRepository, ConnectBucket, get_timestamp_from_date, get_timestamp_format, LocationsRepository
 from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import numpy as np
 import pandas as pd
@@ -25,7 +25,6 @@ class DeviceLocationService():
         self.repository.add_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
 
 
-connectdb = ConnectDataBase()
 conncets3 = ConnectBucket()
 prediccionesfoto_repository = PrediccionesFotoRepository()
 
@@ -428,8 +427,6 @@ class PredictPhotosService():
         Input:
             - data_objects:DataFrame Objetos que fueron analizados por la IA.
         """
-        # connectdb.insert_resumen_diario(fecha_insert=fecha, device_location=device_location)
-
         df_resumen = data_objects.groupby(["foto_fecha", "device_location"])\
                                 .agg({'cantidad_aedes': 'last', 
                                     'cantidad_moscas': 'last', 
