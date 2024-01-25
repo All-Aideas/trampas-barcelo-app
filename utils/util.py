@@ -140,87 +140,6 @@ def predict_casos(full_path_file):
         return 0, 0, 0, None
 
 
-def get_casos_por_centro(mapa, fecha=None, locations=[]):
-    """
-    Descripción:
-    Mostrar la suma de cantidades de aedes, mosquitos y moscas por cada ubicación en un día específico.
-    Si no se especifica el día de consulta, entonces retorna el resumen de la última fecha registrada.
-    Si el valor de aedes es mayor a 0, entonces mostrará el punto en el mapa de color rojo.
-    Si no existen fotos que hayan sido procesadas por la IA, entonces se mostrarán los puntos de color verde en el mapa y las cantidades serán 0.
-    Ejemplo: Para el día 01/01/24 hubo 1 aedes, 1 mosquito y 1 mosca.
-    Input:
-        - mapa: Objeto mapa.
-        - fecha: Formato YYYY-MM-DD.
-        - locations:list Lista de diccionarios.
-    Output:
-        - None.
-    """
-    centros_prevencion = locations
-    
-    df_resumenes_diario = connectdb.get_datos_resumen_diario(fecha, centros=centros_prevencion)
-    # print(df_resumenes_diario)
-    if df_resumenes_diario.empty:
-        # for centro in centros_prevencion.keys():
-        #     centro_lat = centros_prevencion[centro]["latitud"]#centros_prevencion[centro][1]
-        #     centro_lng = centros_prevencion[centro]["longitud"]#centros_prevencion[centro][2]
-        #     centro_lat_lng = [centro_lat, centro_lng]
-        #     centro_nombre = centros_prevencion[centro]["nombre_centro"]#centros_prevencion[centro][0]
-        #     set_market(mapa, lat_lng=centro_lat_lng, 
-        #             name=centro_nombre)
-        for data_location in locations:
-            centro_lat, centro_lng = data_location.get("latitud", 0), data_location.get("longitud", 0)
-            centro_lat_lng = [centro_lat, centro_lng]
-            centro_nombre = data_location.get("nombre_centro", "")
-            set_market(mapa, lat_lng=centro_lat_lng, name=centro_nombre)
-    else:
-        # Obtener última fecha procesada
-        ultima_fecha_procesada = df_resumenes_diario['foto_fecha'].iloc[0] if fecha is None else fecha
-        df_resumenes_diario = df_resumenes_diario[df_resumenes_diario['foto_fecha'] == ultima_fecha_procesada]
-        
-        # Convertir el diccionario a DataFrame
-        centro_df = pd.DataFrame.from_dict(centros_prevencion, orient='index',
-                                        columns=['nombre_centro', 'latitud', 'longitud', 'direccion', 'localidad']).reset_index()
-
-        # Renombrar la columna 'index' a 'centro' para que coincida con el DataFrame original
-        centro_df = centro_df.rename(columns={'index': 'centro'})
-
-        # Realizar la unión (merge) por la columna 'centro'
-        df_resultado = pd.merge(centro_df, df_resumenes_diario, on='centro', how='left')
-        
-        columnas_a_llenar_con_cero = ['cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas']
-        columnas_a_agrupar = ['centro', 'nombre_centro', 'latitud', 'longitud', 'foto_fecha', 'ultima_foto']
-        df_resultado = df_resultado[columnas_a_agrupar + columnas_a_llenar_con_cero]
-
-        default_values = {'foto_fecha': ultima_fecha_procesada, 'ultima_foto': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
-        df_resultado = df_resultado.fillna(default_values)
-        
-        resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
-        resultado_agrupado['lat_lng'] = resultado_agrupado.apply(lambda row: [row['latitud'], row['longitud']], axis=1)
-
-        for _, row in resultado_agrupado.iterrows():
-            centro_lat_lng = row['lat_lng']
-            centro_nombre = row['nombre_centro']
-            texto_resumen_imagen = ""
-            image_base64 = ""
-
-            url_ultima_foto = row['ultima_foto'] # Visualizar foto en HTML
-            
-            if url_ultima_foto:
-                image_base64 = conncets3.get_image_base64(url_ultima_foto)
-            texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='data:image/jpeg;base64,{image_base64}' width='100%' /></div>"
-
-            texto_resumen_no_imagen = f"<div>No hay fotos del día {ultima_fecha_procesada}.</div>"
-            texto_resumen_imagen = texto_resumen_imagen if len(image_base64) > 0 else texto_resumen_no_imagen
-            mostrar_descripcion = True if len(image_base64) > 0 else False
-
-            aedes_total, mosquitos_total, moscas_total = int(row['cantidad_aedes']), int(row['cantidad_mosquitos']), int(row['cantidad_moscas'])
-            set_market(mapa, lat_lng=centro_lat_lng, 
-                    name=centro_nombre, 
-                    description=texto_resumen_imagen, 
-                    show_description=mostrar_descripcion,
-                    aedes_total=aedes_total, mosquitos_total=mosquitos_total, moscas_total=moscas_total)
-
-
 def set_market(mapa, lat_lng:list, name:str, description:str="", show_description:bool=False, aedes_total:int=0, mosquitos_total:int=0, moscas_total:int=0):
     """
     Descripción:
@@ -241,19 +160,6 @@ def set_market(mapa, lat_lng:list, name:str, description:str="", show_descriptio
         tooltip=name,
         icon=icon_config,
     ).add_to(mapa)
-
-
-def marcador_casos(fecha=None, locations=[]):
-    """ Mostrar los centros y cantidad de casos detectados.
-    Los marcadores son almacenados en un HTML.
-    """
-    mapa = folium.Map(
-        location=[-34.5106, -58.4964],
-        zoom_start=13,
-    )
-    
-    get_casos_por_centro(mapa, fecha, locations=locations)
-    mapa.save('templates/mapa.html')
 
 
 def is_valid_format(nombre_archivo):
@@ -282,10 +188,8 @@ class DashboardService():
         resumenesdiario_repository = ResumenesDiarioRepository()
         df_resumenesdiario = resumenesdiario_repository.data(foto_fecha=foto_fecha, device_location=device_location)
 
-        df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='inner') \
+        df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='right') \
                      .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
-        
-        df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
         
         mapa = folium.Map(
             location=[-34.5106, -58.4964],
@@ -294,21 +198,24 @@ class DashboardService():
 
         if df_merged.empty:
             df_locations.apply(self.add_marker, axis=1, mapa=mapa)
-            #df_merged.apply(self.add_marker, axis=1, mapa=mapa)
         else:
             # Obtener última fecha procesada
-            ultima_fecha_procesada = df_merged['foto_fecha'].iloc[0] if foto_fecha is None else foto_fecha
+            ultima_fecha_procesada = df_merged['foto_fecha'].iloc[0]
+            
+            default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
+            df_merged = df_merged.fillna(default_values)
+            
+            df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
+
+            df_merged.sort_values(by=["foto_fecha", "nombre_centro"], ascending=[False, True], inplace=True)
+            
             df_resultado = df_merged[df_merged['foto_fecha'] == ultima_fecha_procesada]
             
             columnas_a_llenar_con_cero = ['cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas']
             columnas_a_agrupar = ['device_location', 'nombre_centro', 'latitud', 'longitud', 'foto_fecha', 'path_foto_yolo']
             df_resultado = df_resultado[columnas_a_agrupar + columnas_a_llenar_con_cero]
-
-            default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
-            df_resultado = df_resultado.fillna(default_values)
             
             resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
-            resultado_agrupado['lat_lng'] = resultado_agrupado.apply(lambda row: [row['latitud'], row['longitud']], axis=1)
             
             resultado_agrupado.apply(self.add_marker, axis=1, mapa=mapa)
         mapa.save('templates/mapa.html')
@@ -325,8 +232,14 @@ class DashboardService():
         prediccionesfoto_repository = PrediccionesFotoRepository()
         df_resultados_por_centro = prediccionesfoto_repository.find(device_location=device_location, device_id_timestamp=foto_fecha)
 
-        df_merged = pd.merge(df_resultados_por_centro, df_locations, on='device_location', how='inner') \
-                     .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
+        # Tabla detalle
+        df_merged = pd.merge(df_resultados_por_centro, df_locations, on='device_location', how='inner')# \
+                     #.sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
+        
+        # Puntos en el mapa
+        df_mapa_points = pd.merge(df_resultados_por_centro, df_locations, on='device_location', how='right')
+        default_values = {'foto_fecha': foto_fecha, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
+        df_mapa_points = df_mapa_points.fillna(default_values)
         
         df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
         df_merged["fecha"] = df_merged["foto_fecha"].apply(lambda col: col)
@@ -351,9 +264,8 @@ class DashboardService():
         df_resultado = df_resultado.fillna(default_values)
         
         resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
-        resultado_agrupado['lat_lng'] = resultado_agrupado.apply(lambda row: [row['latitud'], row['longitud']], axis=1)
         
-        resultado_agrupado.apply(self.add_marker, axis=1, mapa=mapa)
+        df_mapa_points.apply(self.add_marker, axis=1, mapa=mapa)
         mapa.save('templates/mapa.html')
 
         json_datos_resumen_diario_detalle = json.loads(df_merged.to_json(orient="records"))
@@ -364,25 +276,27 @@ class DashboardService():
         Descripción:
         Asignar los puntos de ubicación en el mapa.
         """
-        ultima_fecha_procesada = row["foto_fecha"]
         centro_lat, centro_lng = row["latitud"], row["longitud"]
         centro_lat_lng = [centro_lat, centro_lng]
         centro_nombre = row["nombre_centro"]
-
         texto_resumen_imagen = ""
+        mostrar_descripcion = ""
         image_base64 = ""
+        aedes_total, mosquitos_total, moscas_total = 0, 0, 0
 
-        url_ultima_foto = row['path_foto_yolo'] # Visualizar foto en HTML
-        
-        if url_ultima_foto:
-            image_base64 = conncets3.get_image_base64(url_ultima_foto)
-        texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='data:image/jpeg;base64,{image_base64}' width='100%' /></div>"
+        if type(row.get("foto_fecha")) == str:
+            ultima_fecha_procesada = row["foto_fecha"]
+            url_ultima_foto = row['path_foto_yolo'] # Visualizar foto en HTML
+            
+            if url_ultima_foto:
+                image_base64 = conncets3.get_image_base64(url_ultima_foto)
+            texto_resumen_imagen = f"<div>Última foto tomada el día {ultima_fecha_procesada}<img id='resumen_diario_ultima_foto_yolov5' class='img-fluid' src='data:image/jpeg;base64,{image_base64}' width='100%' /></div>"
 
-        texto_resumen_no_imagen = f"<div>No hay fotos del día {ultima_fecha_procesada}.</div>"
-        texto_resumen_imagen = texto_resumen_imagen if len(image_base64) > 0 else texto_resumen_no_imagen
-        mostrar_descripcion = True if len(image_base64) > 0 else False
+            texto_resumen_no_imagen = f"<div>No hay fotos del día {ultima_fecha_procesada}.</div>"
+            texto_resumen_imagen = texto_resumen_imagen if len(image_base64) > 0 else texto_resumen_no_imagen
+            mostrar_descripcion = True if len(image_base64) > 0 else False
 
-        aedes_total, mosquitos_total, moscas_total = int(row['cantidad_aedes']), int(row['cantidad_mosquitos']), int(row['cantidad_moscas'])
+            aedes_total, mosquitos_total, moscas_total = int(row['cantidad_aedes']), int(row['cantidad_mosquitos']), int(row['cantidad_moscas'])
         set_market(mapa, lat_lng=centro_lat_lng, name=centro_nombre, description=texto_resumen_imagen, show_description=mostrar_descripcion, aedes_total=aedes_total, mosquitos_total=mosquitos_total, moscas_total=moscas_total)
 
 class PredictPhotosService():

@@ -183,22 +183,12 @@ class ResumenesDiarioRepository():
                 response = self.table.scan()
             else:
                 response = self.table.query(
-                    KeyConditionExpression=Key('device_location').eq(device_location) & Key('foto_fecha').eq(foto_fecha)
+                    # KeyConditionExpression=Key('device_location').eq(device_location) & Key('foto_fecha').eq(foto_fecha)
+                    KeyConditionExpression=Key('device_location').eq(device_location)
                 )
             data = response.get('Items', [])
             print("resumenes_diario")
             print(data)
-
-            # key_find = f"resumenes_diario"
-            # if fecha_filtro:
-            #     key_find = f"{key_find}/{fecha_filtro}"
-            #     resultado = db.child(key_find).get().val()
-            #     if not resultado:
-            #         return df_resumen_diario
-            #     resumenes_diarios = [resultado[col] for col in resultado.keys()]
-            # else:
-            #     resultado = db.child(key_find).get().val()
-            #     resumenes_diarios = [item for sublist in [resultado[col].values() for col in resultado.keys()] for item in sublist]
         except Exception as err:
             print(f"Ocurrió un error durante la consulta a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
             data = []
