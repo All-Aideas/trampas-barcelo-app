@@ -3,6 +3,8 @@ import base64
 import urllib3
 import json
 import folium
+from PIL import Image
+from io import BytesIO
 from database.connect import ResumenesDiarioRepository, PrediccionesFotoRepository, ConnectBucket, get_timestamp_from_date, get_timestamp_format, LocationsRepository
 from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import numpy as np
@@ -78,7 +80,7 @@ def get_valid_file(full_path:str):
 
 def invoke_api(image_size="640", nms_threshold=0.45, threshold=0.83, encoded_string=""):
     try:
-        encoded_imagen, metadata = None, None
+        status, encoded_imagen, metadata = None, None, None
 
         cadena = f"data:image/jpeg;base64,{encoded_string}"
         data = {"data": [image_size, nms_threshold, threshold, cadena]}
@@ -88,8 +90,8 @@ def invoke_api(image_size="640", nms_threshold=0.45, threshold=0.83, encoded_str
                                 API_URL_PREDICT,
                                 body=body,
                                 headers={'Content-Type': 'application/json'})
-        
-        if response.status == 200:
+        status = response.status
+        if status == 200:
             # El primer elemento contiene la imagen.
             # El segundo elemento contiene la metadata.
             encoded_imagen, _, metadata = json.loads(response.data.decode('utf-8'))["data"]
@@ -97,7 +99,7 @@ def invoke_api(image_size="640", nms_threshold=0.45, threshold=0.83, encoded_str
     except Exception as err:
         print(f"Error durante la invocación de la IA: {err}")
     finally:
-        return response.status, encoded_imagen, metadata
+        return status, encoded_imagen, metadata
 
 
 def predict_casos(full_path_file):
@@ -376,14 +378,14 @@ class PredictPhotosService():
                     
                     prediccionesfoto_repository.add_prediction(device_location, device_id_timestamp, device_id, aedes, mosquitos, moscas, full_path_bucket, path_foto_yolo, foto_date, foto_datetime)
 
-                    fechas_fotos_device_locations.add((device_location, aedes, mosquitos, moscas, full_path_bucket, path_foto_yolo, foto_date, foto_datetime))
+                    fechas_fotos_device_locations.add((device_location, device_id_timestamp, aedes, mosquitos, moscas, full_path_bucket, path_foto_yolo, foto_date, foto_datetime))
                 
             data = list(fechas_fotos_device_locations)
         except Exception as e:
             print(f"Ocurrió un error durante el proceso de análisis de las imágenes del bucket. Detalle del error: {e}")
             data = []
         finally:
-            columnas = ['device_location', 'cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas', 'full_path_bucket', 'path_foto_yolo', 'foto_fecha', 'foto_datetime']
+            columnas = ['device_location', 'device_id_timestamp', 'cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas', 'full_path_bucket', 'path_foto_yolo', 'foto_fecha', 'foto_datetime']
             resultado = pd.DataFrame(data, columns=columnas)
             return resultado
     
@@ -397,6 +399,7 @@ class PredictPhotosService():
         """
         resumenesdiario_repository = ResumenesDiarioRepository()
         df_resumenesdiario = resumenesdiario_repository.get(device_location=fila["device_location"], foto_fecha=fila["foto_fecha"])
+        print(fila["list_device_id_timestamp"])
 
         if df_resumenesdiario.empty:
             resumenesdiario_repository.add(device_location=fila["device_location"], 
@@ -428,11 +431,12 @@ class PredictPhotosService():
             - data_objects:DataFrame Objetos que fueron analizados por la IA.
         """
         df_resumen = data_objects.groupby(["foto_fecha", "device_location"])\
-                                .agg({'cantidad_aedes': 'last', 
-                                    'cantidad_moscas': 'last', 
-                                    'cantidad_mosquitos': 'last', 
-                                    'path_foto_yolo': 'last',
-                                    'foto_datetime': 'last'})\
+                                .agg(list_device_id_timestamp=('device_id_timestamp', list),
+                                    cantidad_aedes=('cantidad_aedes', 'last'),
+                                    cantidad_moscas=('cantidad_moscas', 'last'),
+                                    cantidad_mosquitos=('cantidad_mosquitos', 'last'),
+                                    path_foto_yolo=('path_foto_yolo', 'last'),
+                                    foto_datetime=('foto_datetime', 'last'))\
                                 .sort_values(by=["foto_fecha", "device_location"])\
                                 .reset_index()
         if not df_resumen.empty:
