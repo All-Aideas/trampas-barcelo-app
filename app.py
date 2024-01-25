@@ -64,7 +64,7 @@ def index():
     """ Página principal de la aplicación.
     """
     dashboard = DashboardService()
-    json_datos_resumen_diario = dashboard.get_resumenes(foto_fecha=None, device_location=None)
+    json_datos_resumen_diario = dashboard.get_resumenes()
     return render_template('index.html', 
             resumenes_diario_datos=json_datos_resumen_diario)
 
