@@ -190,8 +190,6 @@ class ResumenesDiarioRepository():
                     KeyConditionExpression=Key('device_location').eq(device_location)
                 )
             data = response.get('Items', [])
-            print("resumenes_diario")
-            print(data)
         except Exception as err:
             print(f"Ocurrió un error durante la consulta a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
             data = []
@@ -208,7 +206,6 @@ class ResumenesDiarioRepository():
                 }
             )
             item = response.get('Item', [])
-            print(item)
             if item: # No vacío
                 item = [item]
         except Exception as err:
