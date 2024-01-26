@@ -132,12 +132,19 @@ def predict_casos(nombre_imagen, encoded_string):
         response = invoke_api(API_URL_PREDICT, encoded_string)
         print('Resultado de API {} para la foto {}'.format(response.status, nombre_imagen))
         if response.status != 200:
-            foto_date = timestamp.strftime('%Y-%m-%d')
-            foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
-            path_foto_yolo = upload_imagen_s3(encoded_string, nombre_imagen.replace(".jpg","_yolov5.jpg"))
-            if not path_foto_yolo:
-                return 0, 0, 0, None, None, None
-            return 0, 0, 0, path_foto_yolo, foto_date, foto_datetime
+            ruta_normalizada = os.path.normpath(nombre_imagen)
+            partes_ruta = ruta_normalizada.split(os.path.sep)
+            nombre_archivo = partes_ruta[-1]
+            
+            flag, timestamp = is_valid_format(nombre_archivo)
+            if flag:
+                foto_date = timestamp.strftime('%Y-%m-%d')
+                foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                path_foto_yolo = upload_imagen_s3(encoded_string, nombre_imagen.replace(".jpg","_yolov5.jpg"))
+                if not path_foto_yolo:
+                    return 0, 0, 0, None, None, None
+                return 0, 0, 0, path_foto_yolo, foto_date, foto_datetime
+            return 0, 0, 0, None, None, None
         response_data = json.loads(response.data.decode('utf-8'))["data"]
         # El primer elemento contiene la imagen.
         # El segundo elemento contiene la metadata.
