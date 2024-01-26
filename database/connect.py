@@ -206,14 +206,16 @@ class ResumenesDiarioRepository():
             )
             item = response.get('Item', [])
             print(item)
+            if item: # No vacío
+                item = [item]
         except Exception as err:
             print(f"Ocurrió un error durante la consulta del registro ({device_location} {foto_fecha}) a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
             item = []
         finally:
-            columns = ["cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos", "device_location", "foto_fecha", "path_foto_yolo"]
+            columns = ["cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos", "device_location", "foto_fecha", "foto_datetime", "path_foto_yolo", "list_device_id_timestamp"]
             return pd.DataFrame(item, columns=columns)
 
-    def add(self, device_location, aedes, mosquitos, moscas, path_foto_yolo, foto_fecha, foto_datetime):
+    def add(self, device_location, aedes, mosquitos, moscas, path_foto_yolo, foto_fecha, foto_datetime, list_device_id_timestamp):
         try:
             timestamp = get_timestamp()
             data = {
@@ -225,7 +227,8 @@ class ResumenesDiarioRepository():
                 'foto_datetime': foto_datetime,
                 'path_foto_yolo': path_foto_yolo,
                 'timestamp_procesamiento': timestamp, # Fecha de procesamiento
-                'fecha_procesamiento': get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")
+                'fecha_procesamiento': get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S"),
+                'list_device_id_timestamp': list_device_id_timestamp
             }
             
             self.table.put_item(Item=data)
@@ -233,7 +236,7 @@ class ResumenesDiarioRepository():
         except Exception as err:
             print(f"Ocurrió un error durante el registro en la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
 
-    def update(self, device_location, foto_fecha, aedes, mosquitos, moscas, path_foto_yolo):
+    def update(self, device_location, foto_fecha, aedes, mosquitos, moscas, path_foto_yolo, list_device_id_timestamp):
         try:
             timestamp = get_timestamp()
             new_values = {
@@ -242,7 +245,8 @@ class ResumenesDiarioRepository():
                 'cantidad_mosquitos': mosquitos, 
                 'path_foto_yolo': path_foto_yolo,
                 'timestamp_procesamiento': timestamp, # Fecha de procesamiento
-                'fecha_procesamiento': get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")
+                'fecha_procesamiento': get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S"),
+                'list_device_id_timestamp': list_device_id_timestamp
             }
 
             # Construir la expresión de actualización

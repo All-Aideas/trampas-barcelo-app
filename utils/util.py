@@ -398,16 +398,20 @@ class PredictPhotosService():
                                             foto_datetime=fila["foto_datetime"])
 
         else:
-            path_foto_yolo_previous = df_resumenesdiario['path_foto_yolo'].iloc[0]
-            path_foto_yolo_new = fila["path_foto_yolo"]
+            path_foto_yolo_previous = df_resumenesdiario['foto_datetime'].iloc[0] # '2022-11-29 11:11:11'
+            path_foto_yolo_new = fila["foto_datetime"]
+            list_device_id_timestamp = df_resumenesdiario['list_device_id_timestamp'].iloc[0]
+            list_device_id_timestamp_new = list_device_id_timestamp + fila["list_device_id_timestamp"]
+            print(list_device_id_timestamp_new)
 
-            if path_foto_yolo_new > path_foto_yolo_previous:
+            if path_foto_yolo_new >= path_foto_yolo_previous:
                 resumenesdiario_repository.update(device_location=fila["device_location"], 
                                                 foto_fecha=fila["foto_fecha"], 
                                                 aedes=fila["cantidad_aedes"], 
                                                 mosquitos=fila["cantidad_mosquitos"], 
                                                 moscas=fila["cantidad_moscas"], 
-                                                path_foto_yolo=fila["path_foto_yolo"])
+                                                path_foto_yolo=fila["path_foto_yolo"],
+                                                list_device_id_timestamp=list_device_id_timestamp_new)
 
     def resume(self, data_objects):
         """ 
