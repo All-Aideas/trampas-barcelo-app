@@ -395,7 +395,8 @@ class PredictPhotosService():
                                             moscas=fila["cantidad_moscas"], 
                                             path_foto_yolo=fila["path_foto_yolo"], 
                                             foto_fecha=fila["foto_fecha"], 
-                                            foto_datetime=fila["foto_datetime"])
+                                            foto_datetime=fila["foto_datetime"],
+                                            list_device_id_timestamp=fila["list_device_id_timestamp"])
 
         else:
             path_foto_yolo_previous = df_resumenesdiario['foto_datetime'].iloc[0] # '2022-11-29 11:11:11'
