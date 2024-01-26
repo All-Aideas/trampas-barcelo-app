@@ -217,8 +217,15 @@ class DashboardService():
         devicelocationservice = DeviceLocationService()
         df_locations = devicelocationservice.all_data()
 
-        #prediccionesfoto_repository = PrediccionesFotoRepository()
-        df_resultados_por_centro = prediccionesfoto_repository.find(device_location=device_location, device_id_timestamp=foto_fecha)
+        resumenesdiario_repository = ResumenesDiarioRepository()
+        df_resumen_diario = resumenesdiario_repository.get(device_location=device_location, foto_fecha=foto_fecha)
+        list_device_id_timestamp = df_resumen_diario["list_device_id_timestamp"].iloc[0] # Lista de SortedKey para buscar el detalle.
+        
+        data = []
+        for device_id_timestamp in list_device_id_timestamp:
+            data_prediccion = prediccionesfoto_repository.find(device_location=device_location, device_id_timestamp=device_id_timestamp)
+            data.extend(data_prediccion)
+        df_resultados_por_centro = pd.DataFrame(data)
 
         # Tabla detalle
         df_merged = pd.merge(df_resultados_por_centro, df_locations, on='device_location', how='inner')# \
@@ -386,7 +393,6 @@ class PredictPhotosService():
         """
         resumenesdiario_repository = ResumenesDiarioRepository()
         df_resumenesdiario = resumenesdiario_repository.get(device_location=fila["device_location"], foto_fecha=fila["foto_fecha"])
-        print(fila["list_device_id_timestamp"])
 
         if df_resumenesdiario.empty:
             resumenesdiario_repository.add(device_location=fila["device_location"], 
@@ -403,7 +409,6 @@ class PredictPhotosService():
             path_foto_yolo_new = fila["foto_datetime"]
             list_device_id_timestamp = df_resumenesdiario['list_device_id_timestamp'].iloc[0]
             list_device_id_timestamp_new = list_device_id_timestamp + fila["list_device_id_timestamp"]
-            print(list_device_id_timestamp_new)
 
             if path_foto_yolo_new >= path_foto_yolo_previous:
                 resumenesdiario_repository.update(device_location=fila["device_location"], 

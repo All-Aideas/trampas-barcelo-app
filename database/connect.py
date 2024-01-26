@@ -125,11 +125,15 @@ class PrediccionesFotoRepository():
         finally:
             return resultado
     
-    def find(self, device_location:str, device_id_timestamp:str) -> pd.DataFrame:
+    def find(self, device_location:str, device_id_timestamp:str) -> list:
+        """
+        Output:
+        - Lista[dict] : Los campos de cada elemento del diccionario son:
+            device_location, device_id, device_id_timestamp, path_foto_yolo, foto_fecha, foto_datetime, cantidad_aedes, cantidad_moscas, cantidad_mosquitos
+        """
         try:
-            data = set()
+            data = []
 
-            #keys = [{'device_location': {'S': location}, 'device_id_timestamp': {'S': device_id_timestamp}} for location, device_id_timestamp, _ in items_batch]
             keys = [{'device_location': {'S': device_location}, 'device_id_timestamp': {'S': device_id_timestamp}}]
             response = self.dyn_resource.batch_get_item(
                 RequestItems={
@@ -139,13 +143,12 @@ class PrediccionesFotoRepository():
                     }
                 }
             )
-            data.update((item['device_location']['S'], item['device_id']['S'], item['device_id_timestamp']['S'], item['path_foto_yolo']['S'], item['foto_fecha']['S'], item['foto_datetime']['S'], item['cantidad_aedes']['N'], item['cantidad_moscas']['N'], item['cantidad_mosquitos']['N']) for item in response.get('Responses', {}).get(self.table_name, []))
+            data = [{clave: valor['S'] if 'S' in valor else int(valor['N']) for clave, valor in diccionario.items()} for diccionario in response.get('Responses', {}).get(self.table_name, [])]
         except Exception as e:
             print(f"Ocurrió un error durante la consulta de la tabla predicciones_foto en la base de datos. Detalle del error: {e}")
-            data = set()
+            data = []
         finally:
-            columns = ["device_location", "device_id", "device_id_timestamp", "path_foto_yolo", "foto_fecha", "foto_datetime", "cantidad_aedes", "cantidad_moscas", "cantidad_mosquitos"]
-            return pd.DataFrame(data, columns=columns)
+            return data
 
     def add_prediction(self, device_location, device_id_timestamp, device_id, aedes, mosquitos, moscas, path_foto_raw, path_foto_yolo, foto_fecha, foto_datetime):
         """ Registrar objeto en base de datos.
