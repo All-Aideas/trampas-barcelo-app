@@ -74,7 +74,7 @@ def get_valid_file(full_path:str):
         return None, None, None
 
 
-def invoke_api(image_size="640", nms_threshold=0.45, threshold=0.6, encoded_string=""):
+def invoke_api(image_size="640", nms_threshold=0.45, threshold=0.55, encoded_string=""):
     try:
         status, encoded_imagen, metadata = None, None, None
 
