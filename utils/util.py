@@ -167,18 +167,17 @@ def is_valid_format(nombre_archivo):
 
 
 class DashboardService():
-    def get_resumenes(self, foto_fecha=None, device_location=None):
+    def get_resumenes(self):
         """Mostrar el resumen de los casos detectados por día.
         """
         devicelocationservice = DeviceLocationService()
         df_locations = devicelocationservice.all_data()
 
         resumenesdiario_repository = ResumenesDiarioRepository()
-        df_resumenesdiario = resumenesdiario_repository.data(foto_fecha=foto_fecha, device_location=device_location)
+        df_resumenesdiario = resumenesdiario_repository.data()
 
         df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='right') \
                      .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
-        
         mapa = folium.Map(
             location=[-34.5106, -58.4964],
             zoom_start=13,
@@ -188,24 +187,19 @@ class DashboardService():
             df_locations.apply(self.add_marker, axis=1, mapa=mapa)
         else:
             # Obtener última fecha procesada
-            ultima_fecha_procesada = df_merged['foto_fecha'].iloc[0]
-            
-            default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
-            df_merged = df_merged.fillna(default_values)
-            
-            df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
+            ultima_fecha_procesada = df_merged['foto_fecha'].iloc[0] # YYYY-MM-DD
+            df_resumen_por_diario = resumenesdiario_repository.data(foto_fecha=ultima_fecha_procesada)
 
+            df_mapa_points = pd.merge(df_resumen_por_diario, df_locations, on='device_location', how='right') \
+                        .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
+            default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
+            df_mapa_points = df_mapa_points.fillna(default_values)
+
+            df_merged = df_merged.fillna(default_values)
+            df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
             df_merged.sort_values(by=["foto_fecha", "nombre_centro"], ascending=[False, True], inplace=True)
             
-            df_resultado = df_merged[df_merged['foto_fecha'] == ultima_fecha_procesada]
-            
-            columnas_a_llenar_con_cero = ['cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas']
-            columnas_a_agrupar = ['device_location', 'nombre_centro', 'latitud', 'longitud', 'foto_fecha', 'path_foto_yolo']
-            df_resultado = df_resultado[columnas_a_agrupar + columnas_a_llenar_con_cero]
-            
-            resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
-            
-            resultado_agrupado.apply(self.add_marker, axis=1, mapa=mapa)
+            df_mapa_points.apply(self.add_marker, axis=1, mapa=mapa)
         mapa.save('templates/mapa.html')
 
         json_datos_resumen_diario = json.loads(df_merged.to_json(orient="records"))
@@ -220,6 +214,24 @@ class DashboardService():
         resumenesdiario_repository = ResumenesDiarioRepository()
         df_resumen_diario = resumenesdiario_repository.get(device_location=device_location, foto_fecha=foto_fecha)
         list_device_id_timestamp = df_resumen_diario["list_device_id_timestamp"].iloc[0] # Lista de SortedKey para buscar el detalle.
+
+        # Recuperar todos los resumenes para mostrar puntos rojos en el mapa para un día en concreto.
+        df_resumenesdiario = resumenesdiario_repository.data(foto_fecha=foto_fecha)
+        # Puntos en el mapa
+        df_mapa_points = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='right')
+        default_values = {'foto_fecha': foto_fecha, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
+        df_mapa_points = df_mapa_points.fillna(default_values)
+
+        # Obtener última fecha procesada
+        df_mapa_points = df_mapa_points[df_mapa_points['foto_fecha'] == foto_fecha]
+        
+        # Mostrar en mapa
+        mapa = folium.Map(
+            location=[-34.5106, -58.4964],
+            zoom_start=13,
+        )
+        df_mapa_points.apply(self.add_marker, axis=1, mapa=mapa)
+        mapa.save('templates/mapa.html')
         
         data = []
         for device_id_timestamp in list_device_id_timestamp:
@@ -228,42 +240,13 @@ class DashboardService():
         df_resultados_por_centro = pd.DataFrame(data)
 
         # Tabla detalle
-        df_merged = pd.merge(df_resultados_por_centro, df_locations, on='device_location', how='inner')# \
-                     #.sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
-        
-        # Puntos en el mapa
-        df_mapa_points = pd.merge(df_resultados_por_centro, df_locations, on='device_location', how='right')
-        default_values = {'foto_fecha': foto_fecha, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
-        df_mapa_points = df_mapa_points.fillna(default_values)
-        
+        df_merged = pd.merge(df_resultados_por_centro, df_locations, on='device_location', how='inner')
         df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
         df_merged["fecha"] = df_merged["foto_fecha"].apply(lambda col: col)
         df_merged["fecha_datetime"] = df_merged["foto_fecha"].apply(lambda col: get_datetime_from_str(col))
-        
         df_merged.sort_values(by=["fecha_datetime", "device_location", "path_foto_yolo"], inplace=True)
-
-        # Mostrar en mapa
-        mapa = folium.Map(
-            location=[-34.5106, -58.4964],
-            zoom_start=13,
-        )
-        # Obtener última fecha procesada
-        ultima_fecha_procesada = foto_fecha
-        df_resultado = df_merged[df_merged['foto_fecha'] == ultima_fecha_procesada]
-        
-        columnas_a_llenar_con_cero = ['cantidad_aedes', 'cantidad_mosquitos', 'cantidad_moscas']
-        columnas_a_agrupar = ['device_location', 'nombre_centro', 'latitud', 'longitud', 'foto_fecha', 'path_foto_yolo']
-        df_resultado = df_resultado[columnas_a_agrupar + columnas_a_llenar_con_cero]
-
-        default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
-        df_resultado = df_resultado.fillna(default_values)
-        
-        resultado_agrupado = df_resultado.groupby(columnas_a_agrupar)[columnas_a_llenar_con_cero].sum().reset_index()
-        
-        df_mapa_points.apply(self.add_marker, axis=1, mapa=mapa)
-        mapa.save('templates/mapa.html')
-
         json_datos_resumen_diario_detalle = json.loads(df_merged.to_json(orient="records"))
+
         return json_datos_resumen_diario_detalle
     
     def add_marker(self, row, mapa):

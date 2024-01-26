@@ -180,14 +180,13 @@ class ResumenesDiarioRepository():
         self.dyn_resource = dynamodb
         self.table = self.dyn_resource.Table("resumenes_diario")
     
-    def data(self, foto_fecha=None, device_location=None) -> pd.DataFrame:
+    def data(self, foto_fecha=None) -> pd.DataFrame:
         try:
-            if foto_fecha is None and device_location is None:
+            if foto_fecha is None:
                 response = self.table.scan()
             else:
                 response = self.table.query(
-                    # KeyConditionExpression=Key('device_location').eq(device_location) & Key('foto_fecha').eq(foto_fecha)
-                    KeyConditionExpression=Key('device_location').eq(device_location)
+                    KeyConditionExpression=Key('foto_fecha').eq(foto_fecha)
                 )
             data = response.get('Items', [])
         except Exception as err:
