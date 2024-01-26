@@ -3,8 +3,6 @@ import base64
 import urllib3
 import json
 import folium
-from PIL import Image
-from io import BytesIO
 from database.connect import ResumenesDiarioRepository, PrediccionesFotoRepository, ConnectBucket, get_timestamp_from_date, get_timestamp_format, LocationsRepository
 from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import numpy as np
@@ -12,6 +10,8 @@ import pandas as pd
 from datetime import datetime
 from utils.date_format import get_datetime_from_str, get_str_format_from_date_str
 
+conncets3 = ConnectBucket()
+prediccionesfoto_repository = PrediccionesFotoRepository()
 
 class DeviceLocationService():
 
@@ -25,10 +25,6 @@ class DeviceLocationService():
 
     def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
         self.repository.add_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
-
-
-conncets3 = ConnectBucket()
-prediccionesfoto_repository = PrediccionesFotoRepository()
 
 class PhotosService():
     
@@ -126,16 +122,7 @@ def predict_casos(full_path_file):
         mosquitos = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosquito')
         moscas = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosca')
         
-        #ruta_normalizada = os.path.normpath(full_path_file)
-        #partes_ruta = ruta_normalizada.split(os.path.sep)
-        #nombre_archivo = partes_ruta[-1]
-        
-        #flag, timestamp = is_valid_format(nombre_archivo)
-        # if flag:
-        #     foto_date = timestamp.strftime('%Y-%m-%d')
-        #     foto_datetime = timestamp.strftime('%Y-%m-%d %H:%M:%S')
         return aedes, mosquitos, moscas, path_foto_yolo
-        #return 0, 0, 0, None
     except Exception as e:
         print(f"Ocurrió un error en el proceso de invocar el API de YOLO. Detalle del error: {e}")
         return 0, 0, 0, None
@@ -230,7 +217,7 @@ class DashboardService():
         devicelocationservice = DeviceLocationService()
         df_locations = devicelocationservice.all_data()
 
-        prediccionesfoto_repository = PrediccionesFotoRepository()
+        #prediccionesfoto_repository = PrediccionesFotoRepository()
         df_resultados_por_centro = prediccionesfoto_repository.find(device_location=device_location, device_id_timestamp=foto_fecha)
 
         # Tabla detalle
