@@ -1,6 +1,6 @@
 import calendar
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import pandas as pd
 import json
 import base64
@@ -171,8 +171,50 @@ class PrediccionesFotoRepository():
             }
             self.dyn_resource.put_item(TableName=self.table_name, Item=data)
         except Exception as err:
-            print(f"Ocurrió un error durante el registro de un edificio en la base de datos. Detalle del error: {err}")
+            print(f"Ocurrió un error durante el registro de la metadata de la foto en la base de datos. Detalle del error: {err}")
 
+    def add_last_datetime(self, date_time:datetime):
+        """ Registrar objeto en base de datos.
+        """
+        try:
+            data = {
+                "device_location": {'S':'last_datetime_scheduler'},
+                "device_id_timestamp": {'S':'last_datetime_scheduler'},
+                "fecha_procesamiento": {'S':str(date_time)},
+            }
+            self.dyn_resource.put_item(TableName=self.table_name, Item=data)
+            print(f'Actualización exitosa de la última ejecución en la base de datos. La nueva fecha es: {date_time}')
+        except Exception as err:
+            print(f"Ocurrió un error durante el registro de los datos de la última ejecución en la base de datos. Detalle del error: {err}")
+
+    def get_last_datetime(self) -> datetime:
+        """
+        """
+        try:
+            result = None
+            keys = {
+                'device_location': {'S': 'last_datetime_scheduler'},
+                'device_id_timestamp': {'S': 'last_datetime_scheduler'}
+            }
+
+            response = self.dyn_resource.get_item(
+                TableName=self.table_name,
+                Key=keys,
+                AttributesToGet=['device_location', 'device_id_timestamp', 'fecha_procesamiento']
+            )
+            
+            # Obtener el valor de 'fecha_procesamiento' de la respuesta
+            datetime_str = response.get('Item', {}).get('fecha_procesamiento', {}).get('S', None)
+            
+            if datetime_str:
+                # Convertir la cadena a un objeto datetime
+                datetime_value = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S%z")
+                result = datetime(year=datetime_value.year, month=datetime_value.month, day=datetime_value.day, hour=datetime_value.hour, minute=datetime_value.minute, second=datetime_value.second, tzinfo=timezone(timedelta(hours=0)))
+        except Exception as e:
+            print(f"Ocurrió un error durante la consulta de los datos de la última ejecución en la base de datos. Detalle del error: {e}")
+            result = None
+        finally:
+            return result
 
 class ResumenesDiarioRepository():
     

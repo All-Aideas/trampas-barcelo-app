@@ -8,7 +8,7 @@ from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from utils.date_format import get_datetime_from_str, get_str_format_from_date_str
+from utils.date_format import get_datetime, get_datetime_from_str, get_str_format_from_date_str
 
 conncets3 = ConnectBucket()
 prediccionesfoto_repository = PrediccionesFotoRepository()
@@ -295,19 +295,31 @@ class PredictPhotosService():
                 Elementos: (device_location, device_id-timestamp, full_path)
         """
         try:
+            last_datetime = prediccionesfoto_repository.get_last_datetime()
+            print(f'Procesando objetos a partir de la fecha {last_datetime}')
+            
             archivos_jpg = []
+            archivos_metadata = []
             
             devicelocationservice = DeviceLocationService()
             df_locations = devicelocationservice.all_data()
             locations = df_locations["device_location"].tolist()
-            
+
             for location in locations:
                 prefix_bucket = f"{AWS_BUCKET_RAW}/{location}"
 
                 pages = conncets3.get_objects(prefix_bucket=prefix_bucket)
             
                 for page in pages:
-                    archivos_jpg.extend([objeto['Key'] for objeto in page.get('Contents', []) if objeto['Key'].lower().endswith('.jpg')])
+                    archivos_metadata.extend([{'Key':objeto['Key'], 'LastModified':objeto['LastModified']} for objeto in page.get('Contents', []) if objeto['Key'].lower().endswith('.jpg')])
+
+            if last_datetime is None:
+                archivos_jpg = [elemento['Key'] for elemento in archivos_metadata]
+            else:
+                archivos_jpg = [elemento['Key'] for elemento in archivos_metadata if elemento['LastModified'] >= last_datetime]
+
+            last_modified = max(archivos_metadata, key=lambda x: x['LastModified']).get('LastModified', None)
+            prediccionesfoto_repository.add_last_datetime(date_time=last_modified)
 
             #print(f"Archivos JPG que se encuentran en el bucket: {archivos_jpg}")
             
@@ -316,7 +328,7 @@ class PredictPhotosService():
             
             if not reprocessing:
                 predicciones_result = prediccionesfoto_repository.all_data(items=path_files_valid)
-                
+
                 # Retirar los elementos que se encuentran en la base de datos
                 new_elements = set(path_files_valid) - predicciones_result
                 path_files_valid = list(new_elements)
