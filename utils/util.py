@@ -92,6 +92,7 @@ def invoke_api(image_size="640", nms_threshold=0.45, threshold=0.55, encoded_str
             # El segundo elemento contiene la metadata.
             encoded_imagen, _, metadata = json.loads(response.data.decode('utf-8'))["data"]
             metadata = metadata.get('detail', [])
+            encoded_imagen = encoded_imagen.split("data:image/png;base64,")[1]
     except Exception as err:
         print(f"Error durante la invocación de la IA: {err}")
     finally:
@@ -110,9 +111,8 @@ def predict_casos(full_path_file):
         print(f'Resultado de API ({status}) para la foto {full_path_file}: {metadata_detail}')
         
         # Almacenar la foto procesada en el bucket
-        response_data_imagen_yolo = encoded_imagen.split("data:image/png;base64,")[1]
         renamed_full_path_bucket = full_path_file.replace(".jpg","_yolov5.jpg")
-        path_foto_yolo = photos_service.upload_imagen_s3(response_data_imagen_yolo, renamed_full_path_bucket)
+        path_foto_yolo = photos_service.upload_imagen_s3(encoded_imagen, renamed_full_path_bucket)
         
         if not path_foto_yolo:
             return 0, 0, 0, None
