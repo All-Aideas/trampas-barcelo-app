@@ -109,6 +109,11 @@ def predict_casos(full_path_file):
         status, encoded_imagen, metadata_detail = invoke_api(encoded_string=encoded_string)
 
         print(f'Resultado de API ({status}) para la foto {full_path_file}: {metadata_detail}')
+
+        if status != 200:
+            # Si hubo un error durante la invocación, entonces se almacena la misma foto.
+            encoded_imagen = encoded_string
+            aedes, mosquitos, moscas = 0, 0, 0
         
         # Almacenar la foto procesada en el bucket
         renamed_full_path_bucket = full_path_file.replace(".jpg","_yolov5.jpg")
@@ -116,11 +121,11 @@ def predict_casos(full_path_file):
         
         if not path_foto_yolo:
             return 0, 0, 0, None
-        
-        # Recuperar la metadata
-        aedes = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Aedes')
-        mosquitos = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosquito')
-        moscas = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosca')
+        else:
+            # Recuperar la metadata
+            aedes = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Aedes')
+            mosquitos = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosquito')
+            moscas = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Mosca')
         
         return aedes, mosquitos, moscas, path_foto_yolo
     except Exception as e:
