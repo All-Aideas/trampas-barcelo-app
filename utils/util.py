@@ -4,7 +4,7 @@ import urllib3
 import json
 import folium
 import base64
-from database.connect import ConnectDataBase, get_timestamp_from_date, get_timestamp_format, ConnectDynamoDB
+from database.connect import LocationsRepository, ConnectDataBase, get_timestamp_from_date, get_timestamp_format, ConnectDynamoDB
 from utils.config import s3, BUCKET_NAME, API_URL_PREDICT, AWS_BUCKET_RAW
 import pandas as pd
 from datetime import datetime
@@ -366,14 +366,13 @@ def is_valid_format(nombre_archivo):
 
 class DeviceLocationService():
 
-    dyn_locations = ConnectDynamoDB("ubicaciones_trampas")
+    def __init__(self):
+        self.repository = LocationsRepository()
+        self.data = None
 
-    def get_locations(self):
-        data = dyn_locations.get_locations()
-        resultado = {item['device_location']: item for item in data}
+    def all_data(self):
+        resultado = self.repository.all_data()
         return resultado
 
     def insert_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
-        #connectdb.insert_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
-        dyn_locations.add_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)
-
+        self.repository.add_location(device_location, direccion, latitud, localidad, longitud, nombre_centro)

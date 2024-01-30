@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 import pandas as pd
 import json
+from decimal import Decimal
 from utils.date_format import get_datetime_from_str, get_timestamp_from_datetime, get_str_format_from_date_str, get_str_date_tz_from_timestamp
 from utils.config import db, dynamodb
 
@@ -21,6 +22,44 @@ def get_timestamp_from_date(timestamp_value):
 def get_timestamp_format(timestamp_value, format="%d/%m/%Y"):
     date_value = datetime.fromtimestamp(timestamp_value)
     return date_value.strftime(format)
+
+
+class LocationsRepository():
+
+    def __init__(self):
+        self.dyn_resource = dynamodb
+        self.table = self.dyn_resource.Table("ubicaciones_trampas")
+    
+    def all_data(self) -> pd.DataFrame:
+        """Obtener los datos de los edificios que tienen trampas.
+        """
+        try:
+            response = self.table.scan()
+            data = response.get('Items', [])
+        except Exception as e:
+            print(f"Ocurrió un error durante la consulta de la lista de edificios en la base de datos. Detalle del error: {e}")
+            data = []
+        finally:
+            columns = ["device_location", "latitud", "localidad", "longitud", "nombre_centro"]
+            return pd.DataFrame(data, columns=columns)
+
+    def add_location(self, device_location, direccion, latitud, localidad, longitud, nombre_centro):
+        """ Registrar ubicaciones de las cámaras en base de datos.
+        """
+        timestamp = get_timestamp()
+        try:
+            data = {
+                "device_location": device_location,
+                "direccion": direccion, 
+                "latitud": Decimal(str(latitud)), 
+                "localidad": localidad, 
+                "longitud": Decimal(str(longitud)), 
+                "nombre_centro": nombre_centro,
+                "fecha_registro": get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")
+            }
+            self.table.put_item(Item=data)
+        except Exception as err:
+            print(f"Ocurrió un error durante el registro de un edificio en la base de datos. Detalle del error: {err}")
 
 
 class ConnectDynamoDB():
