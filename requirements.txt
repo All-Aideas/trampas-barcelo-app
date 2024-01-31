@@ -1,8 +1,8 @@
-flask
+flask==3.0.0
 folium==0.15.1
-pillow
-pyrebase
-boto3
+pillow==10.1.0
+pyrebase=3.0.27
+boto3==1.33.1
 python-dotenv==1.0.0
 pandas==1.5.2
-apscheduler
+apscheduler==3.10.4
