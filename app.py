@@ -115,10 +115,10 @@ def locations():
         return jsonify({"error": str(e)}), 503
 
 
-# Ejecutar periodicamente
-scheduler = BackgroundScheduler()
-scheduler.add_job(predecir, trigger='interval', hours=SCHEDULER_HORAS, minutes=SCHEDULER_MINUTOS)
-scheduler.start()
+# # Ejecutar periodicamente
+# scheduler = BackgroundScheduler()
+# scheduler.add_job(predecir, trigger='interval', hours=SCHEDULER_HORAS, minutes=SCHEDULER_MINUTOS)
+# scheduler.start()
 
 # Iniciar aplicación
 if __name__ == "__main__":
