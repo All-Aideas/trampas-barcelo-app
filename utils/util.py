@@ -321,7 +321,7 @@ class PredictPhotosService():
             if last_datetime is None:
                 archivos_jpg = [elemento['Key'] for elemento in archivos_metadata]
             else:
-                archivos_jpg = [elemento['Key'] for elemento in archivos_metadata if elemento['LastModified'] < last_datetime]
+                archivos_jpg = [elemento['Key'] for elemento in archivos_metadata if elemento['LastModified'] >= last_datetime]
 
             last_modified = max(archivos_metadata, key=lambda x: x['LastModified']).get('LastModified', None)
             prediccionesfoto_repository.add_last_datetime(date_time=last_modified)
