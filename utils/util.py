@@ -408,7 +408,7 @@ class PredictPhotosService():
             path_foto_yolo_previous = df_resumenesdiario['foto_datetime'].iloc[0] # '2022-11-29 11:11:11'
             path_foto_yolo_new = fila["foto_datetime"]
             list_device_id_timestamp = df_resumenesdiario['list_device_id_timestamp'].iloc[0]
-            list_device_id_timestamp_new = list_device_id_timestamp + fila["list_device_id_timestamp"]
+            list_device_id_timestamp_new = list(set(list_device_id_timestamp + fila["list_device_id_timestamp"]))
 
             if path_foto_yolo_new >= path_foto_yolo_previous:
                 resumenesdiario_repository.update(device_location=fila["device_location"], 
