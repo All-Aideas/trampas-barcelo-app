@@ -364,6 +364,7 @@ class PredictPhotosService():
 
             for device_location, device_id_timestamp, full_path_bucket in data_objects:
                 aedes, mosquitos, moscas, path_foto_yolo = predict_casos(full_path_bucket)
+                print(f"El resultado es: {aedes} {mosquitos} {moscas} {path_foto_yolo}")
 
                 if path_foto_yolo:
                     device_id, timestamp, ext = device_id_timestamp.split(".")
