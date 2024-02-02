@@ -120,7 +120,7 @@ def predict_casos(full_path_file):
         path_foto_yolo = photos_service.upload_imagen_s3(encoded_imagen, renamed_full_path_bucket)
         
         if not metadata_detail:
-            return 0, 0, 0, None
+            return 0, 0, 0, path_foto_yolo
         else:
             # Recuperar la metadata
             aedes = sum(int(item.get('quantity', 0)) for item in metadata_detail if item.get('description') == 'Aedes')
