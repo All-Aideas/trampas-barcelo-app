@@ -118,7 +118,7 @@ def predict_casos(full_path_file):
         # Almacenar la foto procesada en el bucket
         renamed_full_path_bucket = full_path_file.replace(".jpg","_yolov5.jpg")
         path_foto_yolo = photos_service.upload_imagen_s3(encoded_imagen, renamed_full_path_bucket)
-        print(f"path_foto_yolo: {path_foto_yolo}")
+        
         if not metadata_detail:
             return 0, 0, 0, None
         else:
@@ -364,7 +364,6 @@ class PredictPhotosService():
 
             for device_location, device_id_timestamp, full_path_bucket in data_objects:
                 aedes, mosquitos, moscas, path_foto_yolo = predict_casos(full_path_bucket)
-                print(f"El resultado es: {aedes} {mosquitos} {moscas} {path_foto_yolo}")
 
                 if path_foto_yolo:
                     device_id, timestamp, ext = device_id_timestamp.split(".")

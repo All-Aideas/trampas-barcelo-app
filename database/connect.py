@@ -170,7 +170,6 @@ class PrediccionesFotoRepository():
                 "fecha_procesamiento": {'S':get_str_date_tz_from_timestamp(timestamp, format="%Y-%m-%d %H:%M:%S")}
             }
             self.dyn_resource.put_item(TableName=self.table_name, Item=data)
-            print(f"Registro existoso en la tabla predicciones_foto: {device_location} {device_id_timestamp}.{path_foto_raw}")
         except Exception as err:
             print(f"Ocurrió un error durante el registro de la metadata de la foto en la base de datos. Detalle del error: {err}")
 
