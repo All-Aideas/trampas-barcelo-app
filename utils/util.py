@@ -119,7 +119,7 @@ def predict_casos(full_path_file):
         renamed_full_path_bucket = full_path_file.replace(".jpg","_yolov5.jpg")
         path_foto_yolo = photos_service.upload_imagen_s3(encoded_imagen, renamed_full_path_bucket)
         print(f"path_foto_yolo: {path_foto_yolo}")
-        if not path_foto_yolo:
+        if not metadata_detail:
             return 0, 0, 0, None
         else:
             # Recuperar la metadata
