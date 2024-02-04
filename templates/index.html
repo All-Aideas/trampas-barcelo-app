@@ -167,9 +167,8 @@
     }
 
     function mostrarDatosDetalle(data) {
-        table = $('#tabla_resumenes_diario_detalle').DataTable({});
-        table.destroy();
-        
+        $('#tabla_resumenes_diario_detalle').DataTable({}).destroy();
+
         var detalleBody = $('#tabla_resumenes_diario_detalle_body');
         detalleBody.empty();  // Limpiar las filas existentes
 
