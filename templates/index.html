@@ -168,7 +168,7 @@
 
     function mostrarDatosDetalle(data) {
       if ($.fn.dataTable.isDataTable('#tabla_resumenes_diario_detalle')) {
-        $('#tabla_resumenes_diario_detalle').DataTable({}).destroy();
+        $('#tabla_resumenes_diario_detalle').DataTable().destroy();
       }
 
       var detalleBody = $('#tabla_resumenes_diario_detalle_body');
