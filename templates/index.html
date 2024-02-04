@@ -167,27 +167,29 @@
     }
 
     function mostrarDatosDetalle(data) {
+      if ($.fn.dataTable.isDataTable('#tabla_resumenes_diario_detalle')) {
         $('#tabla_resumenes_diario_detalle').DataTable({}).destroy();
+      }
 
-        var detalleBody = $('#tabla_resumenes_diario_detalle_body');
-        detalleBody.empty();  // Limpiar las filas existentes
+      var detalleBody = $('#tabla_resumenes_diario_detalle_body');
+      detalleBody.empty();  // Limpiar las filas existentes
 
-        // Agregar las nuevas filas de detalle
-        for (var i = 0; i < data.length; i++) {
-            var resumen_diario = data[i];
-            var nuevaFila = '<tr onclick="verImagenes(\'' + resumen_diario.foto_datetime + '\', \'' + resumen_diario.nombre_centro + '\', \'' + resumen_diario.path_foto_yolo + '\')">';
-            nuevaFila = nuevaFila + '<td>'+ resumen_diario.foto_datetime + '</td>';
-            nuevaFila = nuevaFila + '<td>'+ resumen_diario.nombre_centro + '</td>';
-            nuevaFila = nuevaFila + '<td>'+ resumen_diario.device_id + '</td>';
-            nuevaFila = nuevaFila + '<td>'+ resumen_diario.cantidad_aedes + '</td>';
-            nuevaFila = nuevaFila + '<td>'+ resumen_diario.cantidad_mosquitos + '</td>';
-            nuevaFila = nuevaFila + '<td>'+ resumen_diario.cantidad_moscas + '</td>';
-            nuevaFila = nuevaFila + '<td><button type="button" class="btn btn-primary btn-sm">Ver imágen</button></td></tr>';
-            detalleBody.append(nuevaFila);
-        }
-        $('#tabla_resumenes_diario_detalle').DataTable({
-            order: [[0, 'asc']],
-        });
+      // Agregar las nuevas filas de detalle
+      for (var i = 0; i < data.length; i++) {
+          var resumen_diario = data[i];
+          var nuevaFila = '<tr onclick="verImagenes(\'' + resumen_diario.foto_datetime + '\', \'' + resumen_diario.nombre_centro + '\', \'' + resumen_diario.path_foto_yolo + '\')">';
+          nuevaFila = nuevaFila + '<td>'+ resumen_diario.foto_datetime + '</td>';
+          nuevaFila = nuevaFila + '<td>'+ resumen_diario.nombre_centro + '</td>';
+          nuevaFila = nuevaFila + '<td>'+ resumen_diario.device_id + '</td>';
+          nuevaFila = nuevaFila + '<td>'+ resumen_diario.cantidad_aedes + '</td>';
+          nuevaFila = nuevaFila + '<td>'+ resumen_diario.cantidad_mosquitos + '</td>';
+          nuevaFila = nuevaFila + '<td>'+ resumen_diario.cantidad_moscas + '</td>';
+          nuevaFila = nuevaFila + '<td><button type="button" class="btn btn-primary btn-sm">Ver imágen</button></td></tr>';
+          detalleBody.append(nuevaFila);
+      }
+      $('#tabla_resumenes_diario_detalle').DataTable({
+          order: [[0, 'asc']],
+      });
     }
 
     function verDetalle(fecha_formato, centro){
