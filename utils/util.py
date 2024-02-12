@@ -193,7 +193,17 @@ class DashboardService():
         else:
             # Obtener última fecha procesada
             ultima_fecha_procesada = df_merged['foto_fecha'].iloc[0] # YYYY-MM-DD
-            df_resumen_por_diario = resumenesdiario_repository.data(foto_fecha=ultima_fecha_procesada)
+            # df_resumen_por_diario = resumenesdiario_repository.data(foto_fecha=ultima_fecha_procesada)
+            df_resumen_por_diario = df_merged.groupby(['device_location'])\
+                                        .agg(foto_fecha=('foto_fecha', 'first'),
+                                            cantidad_aedes=('cantidad_aedes', 'first'), 
+                                            cantidad_moscas=('cantidad_moscas', 'first'),
+                                            cantidad_mosquitos=('cantidad_mosquitos', 'first'),
+                                            foto_fecha=('foto_fecha', 'first'),
+                                            path_foto_yolo=('path_foto_yolo', 'first')
+                                            )\
+                                        .sort_values(by=["device_location"])\
+                                        .reset_index() # Datos de la última fecha en que tomaron foto.
 
             df_mapa_points = pd.merge(df_resumen_por_diario, df_locations, on='device_location', how='right') \
                         .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
