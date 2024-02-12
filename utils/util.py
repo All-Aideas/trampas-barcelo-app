@@ -232,40 +232,40 @@ class DashboardService():
         df_resumen_diario = resumenesdiario_repository.get(device_location=device_location, foto_fecha=foto_fecha)
         list_device_id_timestamp = df_resumen_diario["list_device_id_timestamp"].iloc[0] # Lista de SortedKey para buscar el detalle.
 
-        # # Recuperar todos los resumenes para mostrar puntos rojos en el mapa para un día en concreto.
-        # # df_resumenesdiario = resumenesdiario_repository.data(foto_fecha=foto_fecha)
-        # df_resumenesdiario = resumenesdiario_repository.data()
-        # df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='right') \
-        #              .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
-        # df_mapa_points = df_merged.groupby(['device_location'])\
-        #                                 .agg(foto_fecha=('foto_fecha', 'first'),
-        #                                     cantidad_aedes=('cantidad_aedes', 'first'), 
-        #                                     cantidad_moscas=('cantidad_moscas', 'first'),
-        #                                     cantidad_mosquitos=('cantidad_mosquitos', 'first'),
-        #                                     path_foto_yolo=('path_foto_yolo', 'first'),
-        #                                     latitud=('latitud', 'first'),
-        #                                     localidad=('localidad', 'first'),
-        #                                     longitud=('longitud', 'first'),
-        #                                     nombre_centro=('nombre_centro', 'first'),
-        #                                     )\
-        #                                 .sort_values(by=["device_location"])\
-        #                                 .reset_index() # Datos de la última fecha en que tomaron foto.
+        # Recuperar todos los resumenes para mostrar puntos rojos en el mapa para un día en concreto.
+        # df_resumenesdiario = resumenesdiario_repository.data(foto_fecha=foto_fecha)
+        df_resumenesdiario = resumenesdiario_repository.data()
+        df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='right') \
+                     .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
+        df_mapa_points = df_merged.groupby(['device_location'])\
+                                        .agg(foto_fecha=('foto_fecha', 'first'),
+                                            cantidad_aedes=('cantidad_aedes', 'first'), 
+                                            cantidad_moscas=('cantidad_moscas', 'first'),
+                                            cantidad_mosquitos=('cantidad_mosquitos', 'first'),
+                                            path_foto_yolo=('path_foto_yolo', 'first'),
+                                            latitud=('latitud', 'first'),
+                                            localidad=('localidad', 'first'),
+                                            longitud=('longitud', 'first'),
+                                            nombre_centro=('nombre_centro', 'first'),
+                                            )\
+                                        .sort_values(by=["device_location"])\
+                                        .reset_index() # Datos de la última fecha en que tomaron foto.
         
-        # # Puntos en el mapa
-        # # df_mapa_points = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='right')
-        # default_values = {'foto_fecha': foto_fecha, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
-        # df_mapa_points = df_mapa_points.fillna(default_values)
+        # Puntos en el mapa
+        # df_mapa_points = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='right')
+        default_values = {'foto_fecha': foto_fecha, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
+        df_mapa_points = df_mapa_points.fillna(default_values)
 
-        # # Obtener última fecha procesada
-        # # df_mapa_points = df_mapa_points[df_mapa_points['foto_fecha'] == foto_fecha]
+        # Obtener última fecha procesada
+        # df_mapa_points = df_mapa_points[df_mapa_points['foto_fecha'] == foto_fecha]
         
-        # # Mostrar en mapa
-        # mapa = folium.Map(
-        #     location=[-34.5106, -58.4964],
-        #     zoom_start=13,
-        # )
-        # df_mapa_points.apply(self.add_marker, axis=1, mapa=mapa)
-        # mapa.save('templates/mapa.html')
+        # Mostrar en mapa
+        mapa = folium.Map(
+            location=[-34.5106, -58.4964],
+            zoom_start=13,
+        )
+        df_mapa_points.apply(self.add_marker, axis=1, mapa=mapa)
+        mapa.save('templates/mapa.html')
         
         data = []
         for device_id_timestamp in list_device_id_timestamp:
