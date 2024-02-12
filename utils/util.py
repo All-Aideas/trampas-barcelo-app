@@ -257,7 +257,7 @@ class DashboardService():
         df_mapa_points = df_mapa_points.fillna(default_values)
 
         # Obtener última fecha procesada
-        # df_mapa_points = df_mapa_points[df_mapa_points['foto_fecha'] == foto_fecha]
+        df_mapa_points = df_mapa_points[df_mapa_points['foto_fecha'] <= foto_fecha]
         
         # Mostrar en mapa
         mapa = folium.Map(
