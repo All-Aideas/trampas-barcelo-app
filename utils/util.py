@@ -199,7 +199,6 @@ class DashboardService():
                                             cantidad_aedes=('cantidad_aedes', 'first'), 
                                             cantidad_moscas=('cantidad_moscas', 'first'),
                                             cantidad_mosquitos=('cantidad_mosquitos', 'first'),
-                                            foto_fecha=('foto_fecha', 'first'),
                                             path_foto_yolo=('path_foto_yolo', 'first')
                                             )\
                                         .sort_values(by=["device_location"])\
