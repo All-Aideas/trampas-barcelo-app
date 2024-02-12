@@ -158,13 +158,10 @@
   <!-- <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script> -->
   <script>
     
-    function reload(fecha_busqueda) {
-        var valor = "/mapa";
-        if(fecha_busqueda != null){
-          valor = "/mapa?fecha_busqueda=" + fecha_busqueda
-        }
-        document.getElementById('mapa').src = valor;
-    }
+    // function reload(fecha_busqueda) {
+    //     var valor = "/mapa";
+    //     document.getElementById('mapa').src = valor;
+    // }
 
     function mostrarDatosDetalle(data) {
       if ($.fn.dataTable.isDataTable('#tabla_resumenes_diario_detalle')) {
@@ -200,7 +197,7 @@
             success: function(data) {
                 console.log(data)
                 mostrarDatosDetalle(data);
-                reload(fecha_formato)
+                // reload(fecha_formato)
             },
             error: function(error) {
                 console.error('Error al obtener datos de detalle:', error);
