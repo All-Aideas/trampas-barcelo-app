@@ -221,7 +221,7 @@ class DashboardService():
             df_mapa_points['diferencia_dias_foto'] = (fecha_actual - pd.to_datetime(df_mapa_points['foto_fecha'], utc=True)).dt.days
 
             # Agrega la columna is_today basada en la diferencia de días
-            df_mapa_points['is_today'] = (df_mapa_points['diferencia_dias_foto'] >= 2).astype(bool)
+            df_mapa_points['is_today'] = (df_mapa_points['diferencia_dias_foto'] < 2).astype(bool)
 
             # Elimina la columna temporal de diferencia de días si no es necesaria
             df_mapa_points.drop('diferencia_dias_foto', axis=1, inplace=True)
