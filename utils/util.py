@@ -214,7 +214,22 @@ class DashboardService():
             default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
             df_mapa_points = df_mapa_points.fillna(default_values)
 
-            df_mapa_points['is_today'] = df_mapa_points['foto_fecha'].apply(lambda x: x == ultima_fecha_procesada).astype(bool)
+            # Obtén la fecha actual del sistema
+            fecha_actual = datetime.now(pytz.timezone('America/Argentina/Buenos_Aires'))
+
+            # Convierte ultima_fecha_procesada a formato datetime si no lo está
+            ultima_fecha_procesada = datetime.strptime(ultima_fecha_procesada, '%Y-%m-%d')
+
+            # Calcula la diferencia entre foto_fecha y la fecha actual en días
+            df_mapa_points['diferencia_dias'] = (fecha_actual - pd.to_datetime(df_mapa_points['foto_fecha'])).dt.days
+
+            # Agrega la columna is_today basada en la diferencia de días
+            df_mapa_points['is_today'] = (df_mapa_points['diferencia_dias'] <= 2).astype(bool)
+
+            # Elimina la columna temporal de diferencia de días si no es necesaria
+            df_mapa_points.drop('diferencia_dias', axis=1, inplace=True)
+
+            # df_mapa_points['is_today'] = df_mapa_points['foto_fecha'].apply(lambda x: x == ultima_fecha_procesada).astype(bool)
 
             df_merged = df_merged.fillna(default_values)
             df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
