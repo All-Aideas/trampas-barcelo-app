@@ -303,7 +303,6 @@ class DashboardService():
         if type(row.get("foto_fecha")) == str:
             ultima_fecha_procesada = row["foto_fecha"]
             url_ultima_foto = row['path_foto_yolo'] # Visualizar foto en HTML
-            print(row.get("is_today", False))
             is_today = row.get("is_today", False)
             
             if url_ultima_foto:
