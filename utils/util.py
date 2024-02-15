@@ -214,7 +214,7 @@ class DashboardService():
             default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
             df_mapa_points = df_mapa_points.fillna(default_values)
 
-            df_mapa_points['isToday'] = df_mapa_points['foto_fecha'].apply(lambda x: x == ultima_fecha_procesada).astype(bool)
+            df_mapa_points['is_today'] = df_mapa_points['foto_fecha'].apply(lambda x: x == ultima_fecha_procesada).astype(bool)
 
             df_merged = df_merged.fillna(default_values)
             df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
