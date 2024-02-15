@@ -8,6 +8,7 @@ from utils.config import API_URL_PREDICT, AWS_BUCKET_RAW
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import pytz
 from utils.date_format import get_datetime, get_datetime_from_str, get_str_format_from_date_str
 
 conncets3 = ConnectBucket()
