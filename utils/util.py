@@ -218,17 +218,13 @@ class DashboardService():
             # Obtén la fecha actual del sistema
             fecha_actual = datetime.now(pytz.timezone('America/Argentina/Buenos_Aires'))
 
-            # Convierte ultima_fecha_procesada a formato datetime si no lo está
-            ultima_fecha_procesada = datetime.strptime(ultima_fecha_procesada, '%Y-%m-%d')
-
-            # Calcula la diferencia entre foto_fecha y la fecha actual en días
-            df_mapa_points['diferencia_dias'] = (fecha_actual - pd.to_datetime(df_mapa_points['foto_fecha'])).dt.days
+            df_mapa_points['diferencia_dias_foto'] = (fecha_actual - pd.to_datetime(df_mapa_points['foto_fecha'], utc=True)).dt.days
 
             # Agrega la columna is_today basada en la diferencia de días
-            df_mapa_points['is_today'] = (df_mapa_points['diferencia_dias'] <= 2).astype(bool)
+            df_mapa_points['is_today'] = (df_mapa_points['diferencia_dias_foto'] >= 2).astype(bool)
 
             # Elimina la columna temporal de diferencia de días si no es necesaria
-            df_mapa_points.drop('diferencia_dias', axis=1, inplace=True)
+            df_mapa_points.drop('diferencia_dias_foto', axis=1, inplace=True)
 
             # df_mapa_points['is_today'] = df_mapa_points['foto_fecha'].apply(lambda x: x == ultima_fecha_procesada).astype(bool)
 
