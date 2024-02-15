@@ -133,7 +133,7 @@ def predict_casos(full_path_file):
         return 0, 0, 0, None
 
 
-def set_market(mapa, lat_lng:list, name:str, description:str="", show_description:bool=False, aedes_total:int=0, mosquitos_total:int=0, moscas_total:int=0):
+def set_market(mapa, lat_lng:list, name:str, description:str="", show_description:bool=False, aedes_total:int=0, mosquitos_total:int=0, moscas_total:int=0, is_today=True):
     """
     Descripción:
     Asignar los puntos de ubicación en el mapa.
@@ -141,6 +141,8 @@ def set_market(mapa, lat_lng:list, name:str, description:str="", show_descriptio
     icon_config = folium.Icon(color="green", icon="info-sign")
     if aedes_total > 0:
         icon_config = folium.Icon(color="red", icon="info-sign")
+    if not is_today:
+        icon_config = folium.Icon(color="gray", icon="info-sign")
     
     texto_resumen = f"<div>Aedes: {aedes_total}</div><div>Mosquitos: {mosquitos_total}</div><div>Moscas: {moscas_total}</div>{description}"
     popup_width = "360" if show_description else "180"
@@ -211,6 +213,8 @@ class DashboardService():
             #             .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
             default_values = {'foto_fecha': ultima_fecha_procesada, 'path_foto_yolo': '', 'cantidad_aedes': 0, 'cantidad_mosquitos': 0, 'cantidad_moscas': 0}
             df_mapa_points = df_mapa_points.fillna(default_values)
+
+            df_mapa_points['isToday'] = df_mapa_points['foto_fecha'].apply(lambda x: x == ultima_fecha_procesada).astype(bool)
 
             df_merged = df_merged.fillna(default_values)
             df_merged['fecha_formato'] = df_merged['foto_fecha'].apply(lambda col: get_str_format_from_date_str(col))
@@ -299,6 +303,8 @@ class DashboardService():
         if type(row.get("foto_fecha")) == str:
             ultima_fecha_procesada = row["foto_fecha"]
             url_ultima_foto = row['path_foto_yolo'] # Visualizar foto en HTML
+            print(row.get("is_today", False))
+            is_today = row.get("is_today", False)
             
             if url_ultima_foto:
                 image_base64 = conncets3.get_image_base64(url_ultima_foto)
@@ -309,7 +315,7 @@ class DashboardService():
             mostrar_descripcion = True if len(image_base64) > 0 else False
 
             aedes_total, mosquitos_total, moscas_total = int(row['cantidad_aedes']), int(row['cantidad_mosquitos']), int(row['cantidad_moscas'])
-        set_market(mapa, lat_lng=centro_lat_lng, name=centro_nombre, description=texto_resumen_imagen, show_description=mostrar_descripcion, aedes_total=aedes_total, mosquitos_total=mosquitos_total, moscas_total=moscas_total)
+        set_market(mapa, lat_lng=centro_lat_lng, name=centro_nombre, description=texto_resumen_imagen, show_description=mostrar_descripcion, aedes_total=aedes_total, mosquitos_total=mosquitos_total, moscas_total=moscas_total, is_today=is_today)
 
 class PredictPhotosService():
 
