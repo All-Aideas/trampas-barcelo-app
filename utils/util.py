@@ -183,7 +183,7 @@ class DashboardService():
 
         resumenesdiario_repository = ResumenesDiarioRepository()
         df_resumenesdiario = resumenesdiario_repository.data()
-        print(df_resumenesdiario[['foto_fecha', 'device_location']].head())
+        print(df_resumenesdiario[['foto_fecha', 'device_location']].sort_values(by=['foto_fecha', 'device_location'], ascending=[False, True]).head())
         print(len(df_resumenesdiario))
 
         df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='right') \
