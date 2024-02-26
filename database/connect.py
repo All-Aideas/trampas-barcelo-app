@@ -224,14 +224,6 @@ class ResumenesDiarioRepository():
     
     def data(self, foto_fecha=None) -> pd.DataFrame:
         try:
-            # if foto_fecha is None:
-            #     response = self.table.scan()
-            # else:
-            #     response = self.table.query(
-            #         KeyConditionExpression=Key('foto_fecha').eq(foto_fecha)
-            #     )
-            # data = response.get('Items', [])
-
             lastEvaluatedKey = None
             data = [] # Result Array
 
@@ -251,10 +243,6 @@ class ResumenesDiarioRepository():
                     lastEvaluatedKey = response['LastEvaluatedKey']
                 else:
                     break
-
-            print(len(data)) # Return Value: 6
-
-            
         except Exception as err:
             print(f"Ocurrió un error durante la consulta a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
             data = []
