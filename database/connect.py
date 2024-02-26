@@ -224,13 +224,37 @@ class ResumenesDiarioRepository():
     
     def data(self, foto_fecha=None) -> pd.DataFrame:
         try:
-            if foto_fecha is None:
-                response = self.table.scan()
-            else:
-                response = self.table.query(
-                    KeyConditionExpression=Key('foto_fecha').eq(foto_fecha)
+            # if foto_fecha is None:
+            #     response = self.table.scan()
+            # else:
+            #     response = self.table.query(
+            #         KeyConditionExpression=Key('foto_fecha').eq(foto_fecha)
+            #     )
+            # data = response.get('Items', [])
+
+            lastEvaluatedKey = None
+            data = [] # Result Array
+
+            while True:
+                if lastEvaluatedKey == None:
+                    response = self.table.scan() # This only runs the first time - provide no ExclusiveStartKey initially
+                else:
+                    response = self.table.scan(
+                    ExclusiveStartKey=lastEvaluatedKey # In subsequent calls, provide the ExclusiveStartKey
                 )
-            data = response.get('Items', [])
+
+                data.extend(response.get('Items', [])) # Appending to our resultset list
+                
+                # Set our lastEvlauatedKey to the value for next operation,
+                # else, there's no more results and we can exit
+                if 'LastEvaluatedKey' in response:
+                    lastEvaluatedKey = response['LastEvaluatedKey']
+                else:
+                    break
+
+            print(len(data)) # Return Value: 6
+
+            
         except Exception as err:
             print(f"Ocurrió un error durante la consulta a la tabla resumenes_diario en la base de datos. Detalle del error: {err}")
             data = []
