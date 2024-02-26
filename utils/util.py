@@ -186,7 +186,7 @@ class DashboardService():
 
         df_merged = pd.merge(df_resumenesdiario, df_locations, on='device_location', how='right') \
                      .sort_values(by=['foto_fecha', 'nombre_centro'], ascending=[False, True])
-        print(df_merged.head())
+        print(df_merged[['foto_fecha', 'nombre_centro']].head())
         mapa = folium.Map(
             location=[-34.5106, -58.4964],
             zoom_start=13,
