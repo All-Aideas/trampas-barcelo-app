@@ -374,7 +374,7 @@ class PredictPhotosService():
 
             #print(f"Archivos JPG que se encuentran en el bucket: {archivos_jpg}")
             
-            path_files_valid = [file for file in [get_valid_file(archivo_valido) for archivo_valido in archivos_jpg] if file]
+            path_files_valid = [file for file in [get_valid_file(archivo_valido) for archivo_valido in archivos_jpg] if file[0] is not None]
             print(f"Archivos JPG con la nomenclatura esperada en el bucket: {path_files_valid}")
             
             if not reprocessing:
