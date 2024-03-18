@@ -120,7 +120,7 @@ class PrediccionesFotoRepository():
                 )
                 resultado.update((item['device_location']['S'], item['device_id_timestamp']['S'], item['path_foto_raw']['S']) for item in response.get('Responses', {}).get(self.table_name, []))
         except Exception as e:
-            print(f"Ocurrió un error durante la consulta de la tabla predicciones_foto en la base de datos. Detalle del error: {e}")
+            print(f"Ocurrió un error durante la consulta (all_data) de la tabla predicciones_foto en la base de datos. Detalle del error: {e}")
             resultado = set()
         finally:
             return resultado
@@ -145,7 +145,7 @@ class PrediccionesFotoRepository():
             )
             data = [{clave: valor['S'] if 'S' in valor else int(valor['N']) for clave, valor in diccionario.items()} for diccionario in response.get('Responses', {}).get(self.table_name, [])]
         except Exception as e:
-            print(f"Ocurrió un error durante la consulta de la tabla predicciones_foto en la base de datos. Detalle del error: {e}")
+            print(f"Ocurrió un error durante la consulta (find) de la tabla predicciones_foto en la base de datos. Detalle del error: {e}")
             data = []
         finally:
             return data
